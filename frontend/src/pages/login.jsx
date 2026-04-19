@@ -1,95 +1,141 @@
-import { useState } from 'react'
-import { useNavigate } from "react-router-dom"
-import ar from '../locales/ar'
-import en from '../locales/en'
-import { FcGoogle } from "react-icons/fc"
-import { FaFacebookF, FaApple } from "react-icons/fa"
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import EyeIcon from "../components/EyeIcon"
+import LangToggle from "../components/LangToggle"
+import { inputClass, labelClass, btnPrimary } from "../utils/styles"
+import { useTranslation } from "react-i18next"
 
-function Input({ text, value, onChange, type }) {
-  return (
-    <input
-      type={type}
-      placeholder={text}
-      value={value}
-      onChange={onChange}
-    />
-  )
-}
 
-function Button({ text, onClick }) {
-  return <button className="login-btn" onClick={onClick}>{text}</button>
-}
 
 export default function Login() {
-  const navigate = useNavigate()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [language, setLanguage] = useState("ar")
-  const [theme, setTheme] = useState("light") 
+  const { t, i18n } = useTranslation()
+  const textDir = i18n.language === "ar" ? "rtl" : "ltr"
+  const [form, setForm] = useState({ email: "", password: "" })
+  const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
-  const texts = language === "ar" ? ar : en
+  const handleSubmit = (e) => {
+    e.preventDefault()
 
-  const handleLogin = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, password: password }), // غيرنا username لـ email
-      })
-
-      const data = await response.json()
-      console.log(data)
-
-      if (response.ok && data.key) {
-        localStorage.setItem("token", data.key)
-        alert("Login success 🔥")
-        navigate("/")
-      } else {
-        // عرض أول خطأ موجود من السيرفر
-        const errorMessage = data.non_field_errors
-          ? data.non_field_errors[0]
-          : data.detail
-          ? data.detail
-          : "Login failed ❌"
-        alert(errorMessage)
-      }
-
-    } catch (error) {
-      console.error(error)
-      alert("Error connecting to server")
+    if (!form.email || !form.password) {
+      setError(t("login.error_required"))
+      return
     }
+
+    setError("")
+    console.log("Login:", { ...form })
   }
 
   return (
-    <div className={`page ${language === "ar" ? "rtl" : "ltr"} ${theme}`}>
-      <button className="language-switch" onClick={() => setLanguage(language === "ar" ? "en" : "ar")}>
-        {language === "ar" ? "EN" : "ع"}
-      </button>
-      <button className="theme-switch" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-        {theme === "light" ? "Dark Mode" : "Light Mode"}
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <LangToggle />
+     
+      <div className="w-[900px] h-[520px] flex-wrap bg-white rounded-2xl shadow-xl overflow-hidden flex">
 
-      <div className="login-box">
-        <h1>{texts.login}</h1>
+        {/* ===== Left Side ===== */}
+        <div className="hidden md:flex w-[45%] bg-gradient-to-br from-blue-900 to-blue-500 flex-col justify-between p-10 relative overflow-hidden">
+          <div className="absolute w-56 h-56 rounded-full border border-white/10 -top-14 -right-14" />
+          <div className="absolute w-40 h-40 rounded-full border border-white/10 -bottom-10 -left-12" />
 
-        <Input text={texts.email} value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Input text={texts.password} type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <Button text={texts.buttonLogin} onClick={handleLogin} />
+          <span className="text-white text-2xl font-medium">
+            <span className="text-blue-200">{t("hero.brand")}</span>
+          </span>
 
-        <div className="divider"><span>OR</span></div>
+          <p className="text-white text-2xl font-medium leading-relaxed">
+            {t("hero.tagline_1")} <br />
+            <span className="text-blue-200">{t("hero.tagline_2")}</span>
+          </p>
 
-        <div className="social-buttons">
-          <button className="google-btn"><FcGoogle className="icon" /></button>
-          <button className="facebook-btn"><FaFacebookF className="icon" /></button>
-          <button className="apple-btn"><FaApple className="icon" /></button>
+          <div className="flex gap-8">
+            <div className="text-white/80">
+              <strong className="block text-lg text-white">+500</strong>
+              <small className="text-xs opacity-70">{t("hero.companies")}</small>
+            </div>
+            <div className="text-white/80">
+              <strong className="block text-lg text-white">+2K</strong>
+              <small className="text-xs opacity-70">{t("hero.jobs")}</small>
+            </div>
+          </div>
         </div>
 
-        <p className="signup-text">
-          {language === "ar" ? "ليس لدي حساب؟ " : "Don't have an account? "}
-          <span className="signup-link" onClick={() => navigate("/signup")}>
-            {language === "ar" ? "أنشئ حساب" : "Sign up"}
-          </span>
-        </p>
+        {/* ===== Right Side ===== */}
+        <div className="w-full md:w-[55%] flex flex-col justify-center px-10 py-12 " dir={textDir} > 
+          <h2 className="text-2xl font-medium text-gray-900 mb-1"> {t("login.title")}</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {t("login.no_account")}{" "}
+            <Link to="/signup" className="text-blue-600 hover:underline">
+              {t("login.register")}
+            </Link>
+          </p>
+
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 ">
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+              <label className={labelClass}>
+               {t("login.email")}
+              </label>
+              </div>
+              <input
+                type="email"
+                required
+                placeholder="example@email.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className={labelClass}>
+                  {t("login.password")}
+                </label>
+                <a href="#" className="text-xs text-blue-600 hover:underline">
+                 {t("login.forgot")}
+                </a>
+              </div>
+             <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${textDir === "rtl" ? "left-3" : "right-3"}`}
+                >
+                 <EyeIcon open={showPassword} />
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className={btnPrimary}
+            >
+             {t("login.submit")}
+            </button>
+          </form>
+          {error && (
+                <p className="text-red-500 text-xs mt-2">{error}</p>
+              )}
+
+          <div className="flex items-center gap-3 my-4 text-xs text-gray-400">
+            <span className="flex-1 h-px bg-gray-200" />
+            أو
+            <span className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <button className="w-full py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-2">
+            {t("login.continue_google")}
+          </button>
+        </div>
+
       </div>
     </div>
   )

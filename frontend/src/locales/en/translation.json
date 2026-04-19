@@ -1,0 +1,67 @@
+{
+  "login": {
+    "title": "Welcome Back",
+    "email": "Email Address",
+    "password": "Password",
+    "forgot": "Forgot password?",
+    "submit": "Login",
+    "no_account": "Don't have an account?",
+    "register": "Sign up",
+    "role_seeker": "Job Seeker",
+    "role_company": "Company / Employer",
+    "continue_google": "Continue with Google",
+    "error_required": "Please fill in all fields"
+  },
+  "hero": {
+    "brand": "JobPortal",
+    "tagline_1": "Find your dream",
+    "tagline_2": "job easily",
+    "companies": "Registered companies",
+    "jobs": "Active jobs"
+  },
+  "signup": {
+  "create_account": "Create a new account",
+  "already_have_account": "Already have an account?",
+  "login": "Login",
+  "seeker_title": "Job Seeker",
+  "seeker_desc": "Browse jobs and submit your applications",
+  "company_title": "Company / Employer",
+  "company_desc": "Post jobs and connect with candidates",
+  "continue": "Continue"
+},
+"seeker_signup": {
+  "title": "Create a job seeker account",
+  "already_have_account": "Already have an account?",
+  "login": "Login",
+  "full_name": "Full Name",
+  "full_name_placeholder": "e.g. John Smith",
+  "email": "Email Address",
+  "phone": "Phone Number",
+  "password": "Password",
+  "confirm_password": "Confirm Password",
+  "submit": "Create Account",
+  "error_required": "Please fill in all fields",
+  "error_password_match": "Passwords do not match",
+  "error_password_length": "Password must be at least 8 characters"
+},
+"company_signup": {
+  "title": "Register a new company",
+  "company_name": "Company Name",
+  "company_name_placeholder": "e.g. Advanced Tech Co.",
+  "email": "Email Address",
+  "phone": "Phone Number",
+  "governorate": "Governorate",
+  "sector": "Company Sector",
+  "select": "Select...",
+  "website": "Website",
+  "optional": "Optional",
+  "description": "Brief company description",
+  "description_placeholder": "Write a short description about your company...",
+  "password": "Password",
+  "confirm_password": "Confirm Password",
+  "submit": "Submit Registration Request",
+  "error_required": "Please fill in all required fields",
+  "error_password_match": "Passwords do not match",
+  "error_password_length": "Password must be at least 8 characters"
+}
+}

@@ -1,80 +1,78 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import ar from "../locales/ar"
-import en from "../locales/en"
+import { Link, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import LangToggle from "../components/LangToggle"
 
 export default function Signup() {
+  const { t, i18n } = useTranslation()
+  const textDir = i18n.language === "ar" ? "rtl" : "ltr"
   const navigate = useNavigate()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [birthDate, setBirthDate] = useState("")
-
-  const [language, setLanguage] = useState("ar")
-  const [theme, setTheme] = useState("light")
-  const texts = language === "ar" ? ar : en
-
-  const handleSignup = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/registration/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: name,
-          email: email,
-          password1: password,
-          password2: confirmPassword,
-          birth_date: birthDate, // مهم: يروح للباك
-        }),
-      })
-
-      const data = await response.json()
-      console.log(data)
-
-      if (response.ok) {
-        alert("Signup success 🔥")
-        navigate("/")
-      } else {
-        // عرض أول خطأ من السيرفر
-        const firstError = Object.values(data)[0][0]
-        alert(firstError)
-      }
-
-    } catch (error) {
-      console.error(error)
-      alert("Error connecting to server")
-    }
-  }
+  const [role, setRole] = useState(null) // null | "seeker" | "company"
 
   return (
-    <div className={`page ${language === "ar" ? "rtl" : "ltr"} ${theme}`}>
-      <button className="language-switch" onClick={() => setLanguage(language === "ar" ? "en" : "ar")}>
-        {language === "ar" ? "EN" : "ع"}
-      </button>
-      <button className="theme-switch" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-        {theme === "light" ? "Dark" : "Light"}
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
 
-      <div className="login-box">
-        <h1>{language === "ar" ? "إنشاء حساب" : "Create Account"}</h1>
+     <LangToggle />
 
-        <input placeholder={language === "ar" ? "الاسم" : "Name"} value={name} onChange={(e) => setName(e.target.value)} />
-        <input placeholder={texts.email} value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder={texts.password} value={password} onChange={(e) => setPassword(e.target.value)} />
-        <input type="password" placeholder={language === "ar" ? "تأكيد كلمة المرور" : "Confirm Password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-        <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+      <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px]" dir={textDir}>
 
-        <button className="login-btn" onClick={handleSignup}>
-          {language === "ar" ? "إنشاء حساب" : "Sign Up"}
+        <h2 className="text-2xl font-medium text-gray-900 mb-2">
+          {t("signup.create_account")}
+        </h2>
+        <p className="text-sm text-gray-500 mb-8">
+          {t("signup.already_have_account")}{" "}
+          <Link to="/" className="text-blue-600 hover:underline">
+            {t("signup.login")}
+          </Link>
+        </p>
+
+        {/* اختيار الـ role */}
+        <div className="flex flex-col gap-4">
+
+          <button
+            onClick={() => setRole("seeker")}
+            className={`flex items-center gap-4 p-4 border-2 rounded-xl transition ${
+              role === "seeker"
+                ? "border-blue-600 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
+              👤
+            </div>
+            <div dir={textDir}>
+              <p className="font-medium text-gray-900 text-start">{t("signup.seeker_title")}</p>
+              <p className="text-sm text-gray-500 text-start">{t("signup.seeker_desc")}</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setRole("company")}
+            className={`flex items-center gap-4 p-4 border-2 rounded-xl transition ${
+              role === "company"
+                ? "border-blue-600 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
+              🏢
+            </div>
+            <div dir={textDir}>
+              <p className="font-medium text-gray-900 text-start">{t("signup.company_title")}</p>
+              <p className="text-sm text-gray-500 text-start">{t("signup.company_desc")}</p>
+            </div>
+          </button>
+
+        </div>
+
+        <button
+          disabled={!role}
+          onClick={() => navigate(`/signup/${role}`)}
+          className="w-full mt-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition"
+        >
+          {t("signup.continue")}
         </button>
 
-        <p className="signup-text">
-          {language === "ar" ? "لديك حساب؟ " : "Already have an account? "}
-          <span className="signup-link" onClick={() => navigate("/")}>
-            {language === "ar" ? "تسجيل الدخول" : "Login"}
-          </span>
-        </p>
       </div>
     </div>
   )

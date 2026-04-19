@@ -1,0 +1,66 @@
+{
+  "login": {
+    "title": "أهلاً بعودتك",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgot": "نسيت كلمة المرور؟",
+    "submit": "تسجيل الدخول",
+    "no_account": "ليس لديك حساب؟",
+    "register": "سجّل الآن",
+    "role_seeker": "باحث عن عمل",
+    "role_company": "شركة / صاحب عمل",
+    "continue_google": "تسجيل الدخول باستخدام جوجل",
+    "error_required": "يرجى تعبئة جميع الحقول"
+  },
+    "hero": {
+    "brand": "JobPortal",
+    "tagline_1": "ابحث عن وظيفة",
+    "tagline_2": "أحلامك بسهولة",
+    "companies": "شركة مسجلة",
+    "jobs": "وظيفة نشطة"
+  },
+  "signup": {
+  "create_account": "إنشاء حساب جديد",
+  "already_have_account": "هل لديك حساب؟",
+  "login": "سجّل دخول",
+  "seeker_title": "باحث عن عمل",
+  "seeker_desc": "استعرض الوظائف وقدّم طلباتك بسهولة",
+  "company_title": "شركة / صاحب عمل",
+  "company_desc": "انشر وظائفك وتواصل مع المرشحين",
+  "continue": "متابعة"
+},
+"seeker_signup": {
+  "title": "إنشاء حساب باحث عن عمل",
+  "full_name": "الاسم الكامل",
+  "full_name_placeholder": "مثال: محمد أحمد",
+  "email": "البريد الإلكتروني",
+  "phone": "رقم الهاتف",
+  "password": "كلمة المرور",
+  "confirm_password": "تأكيد كلمة المرور",
+  "submit": "إنشاء الحساب",
+  "error_required": "يرجى تعبئة جميع الحقول",
+  "error_password_match": "كلمة المرور غير متطابقة",
+  "error_password_length": "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
+},
+"company_signup": {
+  "title": "تسجيل شركة جديدة",
+  "company_name": "اسم الشركة",
+  "company_name_placeholder": "مثال: شركة التقنية المتقدمة",
+  "email": "البريد الإلكتروني",
+  "phone": "رقم الهاتف",
+  "governorate": "المحافظة",
+  "sector": "قطاع الشركة",
+  "select": "اختر...",
+  "website": "الموقع الإلكتروني",
+  "optional": "اختياري",
+  "description": "وصف مختصر عن الشركة",
+  "description_placeholder": "اكتب نبذة مختصرة عن نشاط شركتك...",
+  "password": "كلمة المرور",
+  "confirm_password": "تأكيد كلمة المرور",
+  "submit": "إرسال طلب التسجيل",
+  "error_required": "يرجى تعبئة جميع الحقول المطلوبة",
+  "error_password_match": "كلمة المرور غير متطابقة",
+  "error_password_length": "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
+}
+  
+}
