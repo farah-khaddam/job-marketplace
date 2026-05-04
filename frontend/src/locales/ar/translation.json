@@ -61,6 +61,94 @@
   "error_required": "يرجى تعبئة جميع الحقول المطلوبة",
   "error_password_match": "كلمة المرور غير متطابقة",
   "error_password_length": "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
-}
-  
+},
+"pending": {
+  "title": "طلبك قيد المراجعة",
+  "message": "شكراً لتسجيلك! سيقوم فريقنا بمراجعة طلبك خلال 24-48 ساعة.",
+  "email_note": "سيصلك إشعار على بريدك الإلكتروني بعد اتخاذ القرار.",
+  "contact": "للاستفسار تواصل معنا على"
+},
+"navbar": {
+  "jobs": "الوظائف",
+  "companies": "الشركات",
+  "about": "عن الموقع",
+  "login": "تسجيل الدخول",
+  "register": "إنشاء حساب",
+  "dashboard": "لوحة التحكم",
+  "logout": "تسجيل الخروج",
+  "start": "تسجيل الدخول"
+},
+"home": {
+  "hero_title_1": "ابحث عن وظيفة",
+  "hero_title_2": "أحلامك",
+  "hero_title_3": "في سوريا",
+  "hero_sub": "آلاف الوظائف من أفضل الشركات في انتظارك",
+  "search_placeholder": "مسمى وظيفي أو مهارة...",
+  "all_governorates": "كل المحافظات",
+  "search_btn": "بحث",
+  "stat_jobs": "وظيفة نشطة",
+  "stat_companies": "شركة مسجلة",
+  "stat_seekers": "باحث عن عمل",
+  "browse_by_category": "تصفح حسب التخصص",
+  "recently_viewed": "وظائف زرتها مؤخراً",
+  "my_applications": "طلباتي الأخيرة",
+  "status_pending": "قيد المراجعة",
+  "latest_jobs": "أحدث الوظائف",
+  "see_all": "عرض الكل",
+  "rights": "جميع الحقوق محفوظة"
+},
+"company": {
+    "layout": {
+      "panel": "لوحة الشركة",
+      "company_account": "حساب شركة",
+      "my_company": "شركتي",
+      "language": "English",
+      "logout": "تسجيل الخروج"
+    },
+    "nav": {
+      "dashboard": "لوحة التحكم",
+      "profile": "ملف الشركة",
+      "jobs": "الوظائف",
+      "applications": "الطلبات"
+    },
+    "dashboard": {
+      "title": "لوحة التحكم",
+      "welcome": "مرحباً، إليك آخر المستجدات",
+      "post_job": "نشر وظيفة",
+      "stats": {
+        "active_jobs": "وظيفة نشطة",
+        "total_apps": "إجمالي الطلبات",
+        "pending_review": "بانتظار المراجعة",
+        "total_views": "مشاهدة إجمالية"
+      },
+      "recent_apps": {
+        "title": "آخر الطلبات الواردة",
+        "view_all": "عرض الكل ←"
+      },
+      "active_jobs": {
+        "title": "الوظائف النشطة",
+        "view_all": "عرض الكل ←",
+        "applicants": "متقدم",
+        "views": "مشاهدة"
+      },
+      "quick_actions": {
+        "manage_jobs": "إدارة الوظائف",
+        "manage_jobs_sub": "تعديل أو إيقاف إعلاناتك",
+        "review_apps": "مراجعة الطلبات",
+        "review_apps_sub": "قبول أو رفض المتقدمين",
+        "company_profile": "ملف الشركة",
+        "company_profile_sub": "تحديث بيانات شركتك"
+      }
+    },
+    "status": {
+      "pending": "قيد المراجعة",
+      "reviewed": "تمت المراجعة",
+      "accepted": "مقبول",
+      "rejected": "مرفوض"
+    },
+    "jobs": {
+      "days_left": "يوم متبقي",
+      "days_left_plural": "أيام متبقية"
+    }
+  }
 }

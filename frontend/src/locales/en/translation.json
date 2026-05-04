@@ -63,5 +63,93 @@
   "error_required": "Please fill in all required fields",
   "error_password_match": "Passwords do not match",
   "error_password_length": "Password must be at least 8 characters"
-}
+},
+"pending": {
+  "title": "Your request is under review",
+  "message": "Thank you for registering! Our team will review your request within 24-48 hours.",
+  "email_note": "You will receive an email notification once a decision is made.",
+  "contact": "For inquiries contact us at"
+},
+"navbar": {
+  "jobs": "Jobs",
+  "companies": "Companies",
+  "about": "About",
+  "login": "Login",
+  "register": "Sign Up",
+  "dashboard": "Dashboard",
+  "logout": "Logout",
+  "start": "Login"
+},
+"home": {
+  "hero_title_1": "Find your",
+  "hero_title_2": "dream job",
+  "hero_title_3": "in Syria",
+  "hero_sub": "Thousands of jobs from top companies waiting for you",
+  "search_placeholder": "Job title or skill...",
+  "all_governorates": "All Governorates",
+  "search_btn": "Search",
+  "stat_jobs": "Active jobs",
+  "stat_companies": "Registered companies",
+  "stat_seekers": "Job seekers",
+  "browse_by_category": "Browse by category",
+  "recently_viewed": "Recently viewed jobs",
+  "my_applications": "My recent applications",
+  "status_pending": "Under review",
+  "latest_jobs": "Latest jobs",
+  "see_all": "See all",
+  "rights": "All rights reserved"
+},
+"company": {
+    "layout": {
+      "panel": "Company Panel",
+      "company_account": "Company Account",
+      "my_company": "My Company",
+      "language": "العربية",
+      "logout": "Logout"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "profile": "Company Profile",
+      "jobs": "Jobs",
+      "applications": "Applications"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "welcome": "Welcome back, here's your overview",
+      "post_job": "Post a Job",
+      "stats": {
+        "active_jobs": "Active Jobs",
+        "total_apps": "Total Applications",
+        "pending_review": "Pending Review",
+        "total_views": "Total Views"
+      },
+      "recent_apps": {
+        "title": "Recent Applications",
+        "view_all": "View all →"
+      },
+      "active_jobs": {
+        "title": "Active Jobs",
+        "view_all": "View all →",
+        "applicants": "applicants",
+        "views": "views"
+      },
+      "quick_actions": {
+        "manage_jobs": "Manage Jobs",
+        "manage_jobs_sub": "Edit or pause your listings",
+        "review_apps": "Review Applications",
+        "review_apps_sub": "Accept or reject applicants",
+        "company_profile": "Company Profile",
+        "company_profile_sub": "Update your company info"
+      }
+    },
+    "status": {
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "jobs": {
+      "days_left": "days left"
+    }
+  }
 }

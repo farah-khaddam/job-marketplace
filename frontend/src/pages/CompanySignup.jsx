@@ -73,9 +73,7 @@ export default function CompanySignup() {
 
     setError("")
     console.log("CompanySignup:", form)
-    // هنا لاحقاً تربط مع Django API
-    // بعد التسجيل تحول لصفحة "طلبك قيد المراجعة"
-    // navigate("/pending")
+    navigate("/pending")
   }
 
 
