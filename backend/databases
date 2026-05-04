@@ -1,0 +1,87 @@
+CREATE SCHEMA data ;
+
+CREATE  TABLE data.company (
+  idcompany INT NOT NULL AUTO_INCREMENT ,
+  company_name VARCHAR(255) NULL ,
+  website VARCHAR(255) NULL ,
+  field_word VARCHAR(255) NULL ,
+  address VARCHAR(255) NULL ,
+  description TEXT NULL ,
+  logo VARCHAR(255) NULL ,
+  login_date DATETIME NULL ,
+  PRIMARY KEY (idcompany) );
+
+CREATE  TABLE data.jobs (
+  idjob INT NOT NULL AUTO_INCREMENT ,
+  type_job VARCHAR(255) NULL ,
+  description TEXT NULL ,
+  titel VARCHAR(255) NULL ,
+  salary DECIMAL(10,3) NULL ,
+  posted_date DATETIME NULL ,
+  expiry_date DATETIME NULL ,
+  company_id INT NULL ,
+  PRIMARY KEY (idjob) ,
+  INDEX company_id_idx (company_id ASC) ,
+  CONSTRAINT company_id
+    FOREIGN KEY (company_id )
+    REFERENCES data.company (idcompany )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
+
+CREATE  TABLE data.job_seeker (
+  idjob_seeker INT NOT NULL AUTO_INCREMENT ,
+  full_name VARCHAR(255) NULL ,
+  name VARCHAR(100) NULL ,
+  e_mail VARCHAR(255) NULL ,
+  password VARCHAR(255) NULL ,
+  role VARCHAR(100) NULL ,
+  data_login DATETIME NULL ,
+  PRIMARY KEY (idjob_seeker) );
+
+CREATE  TABLE data.profiles (
+  idprofile INT NOT NULL AUTO_INCREMENT ,
+  jobseeker_id INT NULL ,
+  cv TEXT NULL ,
+  skills TEXT NULL ,
+  years_experience INT NULL ,
+  PRIMARY KEY (idprofile) ,
+  INDEX jobseeker_id_idx (jobseeker_id ASC) ,
+  CONSTRAINT jobseeker_id
+    FOREIGN KEY (jobseeker_id )
+    REFERENCES data.job_seeker (idjob_seeker )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
+
+CREATE  TABLE data.application (
+  idapplication INT NOT NULL AUTO_INCREMENT ,
+  id_job INT NULL ,
+  id_jobseeker INT NULL ,
+  applied_date DATETIME NULL ,
+  status_apply VARCHAR(100) NULL ,
+  PRIMARY KEY (idapplication) ,
+  INDEX id_job_idx (id_job ASC) ,
+  INDEX id_jobseeker_idx (id_jobseeker ASC) ,
+  CONSTRAINT id_job
+    FOREIGN KEY (id_job )
+    REFERENCES data.jobs (idjob )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT id_jobseeker
+    FOREIGN KEY (id_jobseeker )
+    REFERENCES data.job_seeker (idjob_seeker )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
+
+CREATE  TABLE data.message (
+  idmessage INT NOT NULL AUTO_INCREMENT ,
+  id_job_seeker INT NULL ,
+  content TEXT NULL ,
+  send_date DATETIME NULL ,
+  status_message VARCHAR(100) NULL ,
+  PRIMARY KEY (idmessage) ,
+  INDEX id_job_seeker_idx (id_job_seeker ASC) ,
+  CONSTRAINT id_job_seeker
+    FOREIGN KEY (id_job_seeker )
+    REFERENCES data.job_seeker (idjob_seeker )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
