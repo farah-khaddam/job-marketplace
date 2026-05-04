@@ -1,32 +1,137 @@
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-class CustomUserManager(BaseUserManager):
-    def create_user(self, email, username, password=None, **extra_fields):
-        if not email:
-            raise ValueError("Users must have an email address")
-        email = self.normalize_email(email)
-        user = self.model(email=email, username=username, **extra_fields)
-        user.set_password(password)
-        user.save()
-        return user
+class CustomUser(AbstractUser):
+    pass
 
-    def create_superuser(self, email, username, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        return self.create_user(email, username, password, **extra_fields)
+# ============================================================================
+# CHOICE DEFINITIONS - Dropdown Options for UI
+# ============================================================================
 
-class CustomUser(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(max_length=150, unique=True)
-    email = models.EmailField(unique=True)
-    birth_date = models.DateField(null=True, blank=True)
+GOVERNORATE_CHOICES = [
+    ('damascus', 'Damascus'),
+    ('idlib', 'Idlib'),
+]
+
+COMPANY_TYPE_CHOICES = [
+    ('programming', 'Programming'),
+    ('civil', 'Civil'),
+]
+
+
+# ============================================================================
+# JOB SEEKER USER MODEL
+# ============================================================================
+class JobSeeker(models.Model):
+    """
+    Model for job seekers who want to search for jobs.
+    Stores personal information specific to job seekers.
+    """
+    
+    # Basic Information
+    full_name = models.CharField(
+        max_length=150,
+        help_text="Full name of the job seeker"
+    )
+    email = models.EmailField(
+        unique=True,
+        help_text="Email address for login and contact"
+    )
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message='Phone number must be entered in the format: +999999999. Up to 15 digits allowed.'
+    )
+    phone_number = models.CharField(
+        validators=[phone_regex],
+        max_length=17,
+        help_text="Phone number for contact"
+    )
+    password = models.CharField(
+        max_length=255,
+        help_text="Password (will be hashed)"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-
-    objects = CustomUserManager()
-
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
-
+    
+    class Meta:
+        verbose_name = "Job Seeker"
+        verbose_name_plural = "Job Seekers"
+        ordering = ['-created_at']
+    
     def __str__(self):
-        return self.email
+        return f"{self.full_name} ({self.email})"
+
+
+# ============================================================================
+# COMPANY MODEL
+# ============================================================================
+class Company(models.Model):
+    """
+    Model for companies that post job opportunities.
+    Stores company-specific information including location and business type.
+    """
+    
+    # Basic Information
+    company_name = models.CharField(
+        max_length=200,
+        help_text="Official company name"
+    )
+    email = models.EmailField(
+        unique=True,
+        help_text="Company email for login and contact"
+    )
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message='Phone number must be entered in the format: +999999999. Up to 15 digits allowed.'
+    )
+    phone_number = models.CharField(
+        validators=[phone_regex],
+        max_length=17,
+        help_text="Company phone number"
+    )
+    password = models.CharField(
+        max_length=255,
+        help_text="Password (will be hashed)"
+    )
+    
+    # Location and Business Details
+    governorate = models.CharField(
+        max_length=50,
+        choices=GOVERNORATE_CHOICES,
+        help_text="Company location (governorate)"
+    )
+    company_type = models.CharField(
+        max_length=50,
+        choices=COMPANY_TYPE_CHOICES,
+        help_text="Type of company industry"
+    )
+    
+    # Company Description
+    website_url = models.URLField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Company website link"
+    )
+    description = models.TextField(
+        help_text="Description about the company"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Company"
+        verbose_name_plural = "Companies"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.company_name} ({self.governorate})"
