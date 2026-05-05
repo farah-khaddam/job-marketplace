@@ -4,12 +4,19 @@ from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-class CustomUser(AbstractUser):
-    pass
 
-# ============================================================================
-# CHOICE DEFINITIONS - Dropdown Options for UI
-# ============================================================================
+ROLE_CHOICES = (
+    ('job_seeker', 'Job Seeker'),
+    ('company', 'Company'),
+)
+
+class CustomUser(AbstractUser):
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES
+    )
+
+
 
 GOVERNORATE_CHOICES = [
     ('damascus', 'Damascus'),
@@ -22,9 +29,8 @@ COMPANY_TYPE_CHOICES = [
 ]
 
 
-# ============================================================================
-# JOB SEEKER USER MODEL
-# ============================================================================
+
+
 class JobSeeker(models.Model):
     """
     Model for job seekers who want to search for jobs.
@@ -68,9 +74,7 @@ class JobSeeker(models.Model):
         return f"{self.full_name} ({self.email})"
 
 
-# ============================================================================
-# COMPANY MODEL
-# ============================================================================
+
 class Company(models.Model):
     """
     Model for companies that post job opportunities.
