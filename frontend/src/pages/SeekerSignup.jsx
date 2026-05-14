@@ -1,15 +1,19 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import EyeIcon from "../components/EyeIcon"
 import LangToggle from "../components/LangToggle"
+import { jobSeekerRegister } from "../api/auth"
 import { inputClass, labelClass, btnPrimary } from "../utils/styles"
 
 export default function SeekerSignup() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const textDir = i18n.language === "ar" ? "rtl" : "ltr"
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState({})
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -18,7 +22,16 @@ export default function SeekerSignup() {
     confirmPassword: "",
   })
 
-  const handleSubmit = (e) => {
+  const translateError = (error) => {
+    if (!error) return ""
+    const translationKeys = {
+      email_pending_verification: t("api.email_pending_verification"),
+      email_already_registered: t("api.email_registered"),
+    }
+    return translationKeys[error] || error
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!form.fullName || !form.email || !form.phone || !form.password || !form.confirmPassword) {
@@ -37,8 +50,34 @@ export default function SeekerSignup() {
     }
 
     setError("")
-    console.log("SeekerSignup:", form)
-    // هنا لاحقاً تربط مع Django API
+    setFieldErrors({})
+
+    try {
+      const response = await jobSeekerRegister({
+        full_name: form.fullName,
+        email: form.email,
+        phone_number: form.phone,
+        password: form.password,
+        password_confirm: form.confirmPassword,
+      })
+
+      if (response.data.next_step === "verify_email") {
+        localStorage.setItem("registrationEmail", form.email)
+        navigate("/otp-verification", { state: { email: form.email } })
+        return
+      }
+
+      setError(response.data.message || "")
+    } catch (err) {
+      const serverData = err.response?.data
+      const errors = serverData?.errors || {}
+      const emailError = errors.email?.[0] || ""
+
+      setFieldErrors({
+        email: emailError,
+      })
+      setError(emailError ? "" : serverData?.message || t("api.server_error"))
+    }
   }
 
   
@@ -90,6 +129,9 @@ export default function SeekerSignup() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className={inputClass}
             />
+            {fieldErrors.email && (
+              <p className="text-red-500 text-xs mt-1">{translateError(fieldErrors.email)}</p>
+            )}
           </div>
 
           {/* رقم الهاتف */}

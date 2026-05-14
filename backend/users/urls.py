@@ -5,6 +5,7 @@ from .views import (
 
     job_seeker_register,
     job_seeker_login,
+    verify_email,
     
     company_register,
     company_login,

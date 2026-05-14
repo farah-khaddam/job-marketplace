@@ -1,8 +1,33 @@
 from rest_framework import serializers
-from .models import JobSeeker, Company, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
+from .models import JobSeeker, Company, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES, EmailOTP
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+import random
 
 CustomUser = get_user_model()
+
+def generate_otp():
+    return ''.join(random.choices('0123456789', k=6))
+
+
+def send_job_seeker_otp(job_seeker):
+    otp = generate_otp()
+    expires_at = timezone.now() + timedelta(minutes=10)
+    EmailOTP.objects.filter(job_seeker=job_seeker).delete()
+    EmailOTP.objects.create(
+        job_seeker=job_seeker,
+        otp=otp,
+        expires_at=expires_at,
+    )
+
+    subject = 'Your verification code'
+    message = f'Your verification code is {otp}. It will expire in 10 minutes.'
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    send_mail(subject, message, from_email, [job_seeker.email], fail_silently=False)
 
 
 class JobSeekerRegisterSerializer(serializers.Serializer):
@@ -21,7 +46,7 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         """Check email is not already used"""
-        if CustomUser.objects.filter(email=value).exists():
+        if CustomUser.objects.filter(email=value).exists() or JobSeeker.objects.filter(email=value).exists() or Company.objects.filter(email=value).exists():
             raise serializers.ValidationError("This email is already registered.")
         return value
 
@@ -34,23 +59,22 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        """Create CustomUser first, then JobSeeker"""
+        """Create the JobSeeker record and send OTP"""
         validated_data.pop('password_confirm')
 
-        # 1. Create the CustomUser
-        user = CustomUser.objects.create_user(
-            username=validated_data['email'],
+        job_seeker = JobSeeker.objects.create(
+            full_name=validated_data['full_name'],
             email=validated_data['email'],
-            password=validated_data['password'],
-            role='job_seeker'
+            phone_number=validated_data['phone_number'],
+            password=make_password(validated_data['password']),
+            is_verified=False,
         )
 
-        # 2. Create the JobSeeker linked to that user
-        job_seeker = JobSeeker.objects.create(
-            user=user,
-            full_name=validated_data['full_name'],
-            phone_number=validated_data['phone_number'],
-        )
+        try:
+            send_job_seeker_otp(job_seeker)
+        except Exception:
+            job_seeker.delete()
+            raise serializers.ValidationError({'email': 'Failed to send OTP email. Please try again later.'})
 
         return job_seeker
 
@@ -63,7 +87,7 @@ class JobSeekerLoginSerializer(serializers.Serializer):
 
 class JobSeekerDetailSerializer(serializers.ModelSerializer):
     """Serializer for displaying job seeker details"""
-    email = serializers.EmailField(source='user.email', read_only=True)
+    email = serializers.EmailField(read_only=True)
 
     class Meta:
         model = JobSeeker
@@ -91,7 +115,7 @@ class CompanyRegisterSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         """Check email is not already used"""
-        if CustomUser.objects.filter(email=value).exists():
+        if CustomUser.objects.filter(email=value).exists() or JobSeeker.objects.filter(email=value).exists() or Company.objects.filter(email=value).exists():
             raise serializers.ValidationError("This email is already registered.")
         return value
 
@@ -103,26 +127,18 @@ class CompanyRegisterSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        """Create CustomUser first, then Company"""
+        """Create the Company record"""
         validated_data.pop('password_confirm')
 
-        # 1. Create the CustomUser
-        user = CustomUser.objects.create_user(
-            username=validated_data['email'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            role='company'
-        )
-
-        # 2. Create the Company linked to that user
         company = Company.objects.create(
-            user=user,
             company_name=validated_data['company_name'],
+            email=validated_data['email'],
             phone_number=validated_data['phone_number'],
             governorate=validated_data['governorate'],
             company_type=validated_data['company_type'],
             website_url=validated_data.get('website_url', ''),
             description=validated_data['description'],
+            password=make_password(validated_data['password']),
         )
 
         return company
@@ -136,7 +152,7 @@ class CompanyLoginSerializer(serializers.Serializer):
 
 class CompanyDetailSerializer(serializers.ModelSerializer):
     """Serializer for displaying company details"""
-    email = serializers.EmailField(source='user.email', read_only=True)
+    email = serializers.EmailField(read_only=True)
 
     class Meta:
         model = Company
@@ -145,6 +161,12 @@ class CompanyDetailSerializer(serializers.ModelSerializer):
             'company_type', 'website_url', 'description', 'created_at', 'is_active'
         ]
         read_only_fields = ['id', 'created_at']
+
+
+class EmailVerificationSerializer(serializers.Serializer):
+    """Serializer for verifying email OTP"""
+    email = serializers.EmailField(required=True)
+    otp = serializers.CharField(required=True, max_length=6)
 
 
 class ChoicesSerializer(serializers.Serializer):

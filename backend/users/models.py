@@ -1,8 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
-from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.utils import timezone
 
 
 ROLE_CHOICES = (
@@ -59,6 +58,7 @@ class JobSeeker(models.Model):
         max_length=255,
         help_text="Password (will be hashed)"
     )
+    is_verified = models.BooleanField(default=False)
     
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -73,6 +73,23 @@ class JobSeeker(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.email})"
 
+
+class EmailOTP(models.Model):
+    job_seeker = models.OneToOneField(
+        JobSeeker,
+        on_delete=models.CASCADE,
+        related_name='email_otp'
+    )
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        return timezone.now() < self.expires_at and not self.is_used
+
+    def __str__(self):
+        return f"OTP for {self.job_seeker.email}"
 
 
 class Company(models.Model):

@@ -4,11 +4,11 @@ from django.contrib.auth.hashers import check_password
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import JobSeeker, Company, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
+from .models import JobSeeker, Company, EmailOTP, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
 from .serializers import (
     JobSeekerRegisterSerializer, JobSeekerLoginSerializer, JobSeekerDetailSerializer,
     CompanyRegisterSerializer, CompanyLoginSerializer, CompanyDetailSerializer,
-    ChoicesSerializer
+    ChoicesSerializer, EmailVerificationSerializer
 )
 
 
@@ -151,6 +151,64 @@ def job_seeker_login(request):
             )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['POST'])
+def verify_email(request):
+    """
+    Verify a job seeker email using OTP.
+    POST /api/users/verify-email/
+    {
+        "email": "user@example.com",
+        "otp": "123456"
+    }
+    """
+    serializer = EmailVerificationSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp'].strip()
+        
+        try:
+            job_seeker = JobSeeker.objects.get(email=email)
+        except JobSeeker.DoesNotExist:
+            return Response(
+                {'success': False, 'error': 'Job seeker account not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            email_otp = EmailOTP.objects.get(job_seeker=job_seeker)
+        except EmailOTP.DoesNotExist:
+            return Response(
+                {'success': False, 'error': 'OTP not found or already verified.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if email_otp.is_used or email_otp.expires_at < timezone.now():
+            return Response(
+                {'success': False, 'error': 'OTP has expired. Please request a new code.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if email_otp.otp != otp:
+            return Response(
+                {'success': False, 'error': 'Invalid OTP. Please try again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        email_otp.is_used = True
+        email_otp.save()
+        job_seeker.is_verified = True
+        job_seeker.save()
+
+        return Response(
+            {'success': True, 'message': 'Email verified successfully.'},
+            status=status.HTTP_200_OK
+        )
+
+    return Response({
+        'success': False,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

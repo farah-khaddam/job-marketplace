@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import EyeIcon from "../components/EyeIcon"
 import LangToggle from "../components/LangToggle"
 import { inputClass, labelClass, btnPrimary } from "../utils/styles"
@@ -11,20 +11,33 @@ import { useTranslation } from "react-i18next"
 export default function Login() {
   const { t, i18n } = useTranslation()
   const textDir = i18n.language === "ar" ? "rtl" : "ltr"
+  const navigate = useNavigate()
   const [form, setForm] = useState({ email: "", password: "" })
   const [error, setError] = useState("")
+  const [emailError, setEmailError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
 
+    // clear previous errors
+    setError("")
+    setEmailError("")
+
     if (!form.email || !form.password) {
-      setError(t("login.error_required"))
+      if (!form.email) {
+        setEmailError(t("login.error_required"))
+      }
+      if (!form.password && form.email) {
+        setError(t("login.error_required"))
+      }
       return
     }
 
     setError("")
-    console.log("Login:", { ...form })
+    setEmailError("")
+    // No errors: navigate user to code-writing interface
+    navigate("/company/dashboard")
   }
 
   return (
@@ -85,6 +98,9 @@ export default function Login() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className={inputClass}
               />
+              {emailError && (
+                <p className="text-red-500 text-xs mt-1">{emailError}</p>
+              )}
             </div>
 
             <div>

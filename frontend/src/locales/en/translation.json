@@ -64,6 +64,11 @@
   "error_password_match": "Passwords do not match",
   "error_password_length": "Password must be at least 8 characters"
 },
+"api": {
+  "server_error": "Something went wrong. Please try again.",
+  "email_registered": "This email is already registered.",
+  "email_pending_verification": "This email is pending verification. A new verification code has been sent."
+},
 "pending": {
   "title": "Your request is under review",
   "message": "Thank you for registering! Our team will review your request within 24-48 hours.",
