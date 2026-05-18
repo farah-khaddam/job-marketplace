@@ -42,7 +42,10 @@
   "submit": "Create Account",
   "error_required": "Please fill in all fields",
   "error_password_match": "Passwords do not match",
-  "error_password_length": "Password must be at least 8 characters"
+  "error_password_length": "Password must be at least 8 characters",
+  "error_full_name_invalid": "Full name must contain letters and spaces only",
+  "error_phone_length_range": "Phone number must be between 9 and 10 digits",
+  "error_email_format": "Email must be like example@example.com"
 },
 "company_signup": {
   "title": "Register a new company",

@@ -1,0 +1,33 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: jobportal\n"
+"POT-Creation-Date: 2026-01-01 00:00+0000\n"
+"PO-Revision-Date: 2026-01-01 00:00+0000\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Full name must contain letters only."
+msgstr "يجب أن يحتوي الاسم الكامل على أحرف فقط."
+
+msgid "Phone number must contain numbers only."
+msgstr "يجب أن يحتوي رقم الهاتف على أرقام فقط."
+
+msgid "Phone number must be at least 9 digits."
+msgstr "يجب أن يكون رقم الهاتف 9 أرقام على الأقل."
+
+msgid "Phone number cannot exceed 15 digits."
+msgstr "لا يمكن أن يتجاوز رقم الهاتف 15 رقمًا."
+
+msgid "Invalid email format."
+msgstr "تنسيق البريد الإلكتروني غير صالح."
+
+msgid "Password must be at least 8 characters."
+msgstr "يجب أن تكون كلمة المرور 8 أحرف على الأقل."
+
+msgid "Passwords do not match."
+msgstr "كلمتا المرور غير متطابقتين."
+
+msgid "This email is already registered."
+msgstr "هذا البريد الإلكتروني مسجل بالفعل."

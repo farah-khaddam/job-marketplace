@@ -1,8 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
-from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.utils import timezone
 
 
 ROLE_CHOICES = (
@@ -16,6 +15,23 @@ class CustomUser(AbstractUser):
         choices=ROLE_CHOICES
     )
 
+
+class EmailVerification(models.Model):
+    """Stores a pending registration OTP and the associated registration payload."""
+    email = models.EmailField(unique=True)
+    otp_hash = models.CharField(max_length=128)
+    payload = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "Email Verification"
+        verbose_name_plural = "Email Verifications"
+        ordering = ['-created_at']
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
 
 
 GOVERNORATE_CHOICES = [

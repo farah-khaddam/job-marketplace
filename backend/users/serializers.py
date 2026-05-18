@@ -1,159 +1,382 @@
 from rest_framework import serializers
-from .models import JobSeeker, Company, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
+from .models import JobSeeker, Company, EmailVerification, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
+from datetime import timedelta
+from .utils import send_otp_email
+from dj_rest_auth.serializers import PasswordResetSerializer
+import re
 
 CustomUser = get_user_model()
 
 
-class JobSeekerRegisterSerializer(serializers.Serializer):
-    """
-    Serializer for Job Seeker registration.
-    Creates both CustomUser and JobSeeker in one step.
-    """
-    # Fields for CustomUser
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=6)
-    password_confirm = serializers.CharField(write_only=True)
+# =========================
+# VALIDATORS
+# =========================
 
-    # Fields for JobSeeker
-    full_name = serializers.CharField(max_length=150)
-    phone_number = serializers.CharField(max_length=17)
+def validate_email_format(value):
+    if not value:
+        raise serializers.ValidationError("email_required")
+
+    value = value.strip().lower()
+
+    email_regex = r'^[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'
+
+    if not re.match(email_regex, value):
+        raise serializers.ValidationError("invalid_email")
+
+    if len(value) > 254:
+        raise serializers.ValidationError("email_too_long")
+
+    if '..' in value or value.startswith('.') or value.endswith('.'):
+        raise serializers.ValidationError("invalid_email")
+
+    return value
+
+
+def validate_phone_number_value(value):
+    if not value:
+        raise serializers.ValidationError("phone_required")
+
+    value = str(value).strip()
+    value = re.sub(r"[^\d+]", "", value)
+
+    if not value.startswith("+"):
+        value = "+" + value
+
+    digits = value.replace("+", "")
+
+    if len(digits) < 9 or len(digits) > 15:
+        raise serializers.ValidationError("phone_invalid_length")
+
+    return value
+
+
+def validate_email_not_registered(value):
+    value = value.lower().strip()
+
+    if CustomUser.objects.filter(email=value).exists():
+        raise serializers.ValidationError("email_already_registered")
+
+    if EmailVerification.objects.filter(email=value).exists():
+        raise serializers.ValidationError("email_pending_verification")
+
+    return value
+
+
+def validate_password(value):
+    if not value:
+        raise serializers.ValidationError("password_required")
+
+    if len(value) < 8:
+        raise serializers.ValidationError("password_too_short")
+
+    return value
+
+
+# =========================
+# PASSWORD RESET (required by settings.py)
+# =========================
+
+class CustomPasswordResetSerializer(PasswordResetSerializer):
+    pass
+
+
+# =========================
+# EMAIL CHECK API
+# =========================
+
+class CheckEmailSerializer(serializers.Serializer):
+    email = serializers.CharField()
 
     def validate_email(self, value):
-        """Check email is not already used"""
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("This email is already registered.")
-        return value
+        value = validate_email_format(value)
+        return value.lower().strip()
 
     def validate(self, data):
-        """Validate that passwords match"""
+        email = data['email']
+        return {
+            "email": email,
+            "exists": CustomUser.objects.filter(email=email).exists()
+        }
+
+
+# =========================
+# JOB SEEKER OTP REGISTER
+# (validation only — view handles saving)
+# =========================
+
+class JobSeekerOTPRegisterSerializer(serializers.Serializer):
+    email = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+    full_name = serializers.CharField(max_length=150)
+    phone_number = serializers.CharField()
+
+    def validate_email(self, value):
+        value = validate_email_format(value)
+        value = value.lower().strip()
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("email_already_registered")
+        return value
+
+    def validate_password(self, value):
+        return validate_password(value)
+
+    def validate_phone_number(self, value):
+        return validate_phone_number_value(value)
+
+    def validate_full_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("full_name_required")
+        return value.strip()
+
+    def validate(self, data):
         if data.get('password') != data.get('password_confirm'):
             raise serializers.ValidationError({
-                'password_confirm': 'Passwords do not match.'
+                'password_confirm': 'passwords_not_match'
+            })
+        return data
+
+
+# =========================
+# VERIFY OTP
+# =========================
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+    def validate_otp(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("otp_must_be_numeric")
+        return value
+
+
+# =========================
+# JOB SEEKER REGISTER (full — saves via create())
+# =========================
+
+class JobSeekerRegisterSerializer(serializers.Serializer):
+    email = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+    full_name = serializers.CharField(max_length=150)
+    phone_number = serializers.CharField()
+
+    def validate_email(self, value):
+        value = validate_email_format(value)
+        return validate_email_not_registered(value)
+
+    def validate_password(self, value):
+        return validate_password(value)
+
+    def validate_phone_number(self, value):
+        return validate_phone_number_value(value)
+
+    def validate_full_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("full_name_required")
+        return value.strip()
+
+    def validate(self, data):
+        if data.get('password') != data.get('password_confirm'):
+            raise serializers.ValidationError({
+                'password_confirm': 'passwords_not_match'
             })
         return data
 
     def create(self, validated_data):
-        """Create CustomUser first, then JobSeeker"""
         validated_data.pop('password_confirm')
 
-        # 1. Create the CustomUser
-        user = CustomUser.objects.create_user(
-            username=validated_data['email'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            role='job_seeker'
+        payload = {
+            'role': 'job_seeker',
+            'password_hash': make_password(validated_data['password']),
+            'full_name': validated_data['full_name'],
+            'phone_number': validated_data['phone_number'],
+        }
+
+        ev, _ = EmailVerification.objects.update_or_create(
+            email=validated_data['email'].lower().strip(),
+            defaults={
+                'otp_hash': '',
+                'payload': payload,
+                'expires_at': timezone.now() + timedelta(minutes=10),
+            }
         )
 
-        # 2. Create the JobSeeker linked to that user
-        job_seeker = JobSeeker.objects.create(
-            user=user,
-            full_name=validated_data['full_name'],
-            phone_number=validated_data['phone_number'],
+        email_sent = send_otp_email(
+            pending_registration=ev,
+            request=self.context.get('request')
         )
 
-        return job_seeker
+        if not email_sent:
+            ev.delete()
+            raise serializers.ValidationError({'email': 'email_send_failed'})
 
+        return ev
+
+
+# =========================
+# JOB SEEKER LOGIN
+# =========================
 
 class JobSeekerLoginSerializer(serializers.Serializer):
-    """Serializer for Job Seeker login"""
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField()
 
+
+# =========================
+# JOB SEEKER DETAIL
+# =========================
 
 class JobSeekerDetailSerializer(serializers.ModelSerializer):
-    """Serializer for displaying job seeker details"""
-    email = serializers.EmailField(source='user.email', read_only=True)
-
     class Meta:
         model = JobSeeker
-        fields = ['id', 'full_name', 'email', 'phone_number', 'created_at', 'is_active']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'full_name', 'email', 'phone_number']
 
+
+# =========================
+# COMPANY REGISTER
+# =========================
 
 class CompanyRegisterSerializer(serializers.Serializer):
-    """
-    Serializer for Company registration.
-    Creates both CustomUser and Company in one step.
-    """
-    # Fields for CustomUser
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=6)
+    email = serializers.CharField()
+    password = serializers.CharField(write_only=True)
     password_confirm = serializers.CharField(write_only=True)
-
-    # Fields for Company
     company_name = serializers.CharField(max_length=200)
-    phone_number = serializers.CharField(max_length=17)
+    phone_number = serializers.CharField()
     governorate = serializers.ChoiceField(choices=GOVERNORATE_CHOICES)
     company_type = serializers.ChoiceField(choices=COMPANY_TYPE_CHOICES)
     website_url = serializers.URLField(required=False, allow_blank=True)
     description = serializers.CharField()
 
     def validate_email(self, value):
-        """Check email is not already used"""
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("This email is already registered.")
-        return value
+        value = validate_email_format(value)
+        return validate_email_not_registered(value)
+
+    def validate_password(self, value):
+        return validate_password(value)
+
+    def validate_phone_number(self, value):
+        return validate_phone_number_value(value)
+
+    def validate_company_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("company_name_required")
+        return value.strip()
+
+    def validate_description(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("company_description_required")
+        return value.strip()
 
     def validate(self, data):
         if data.get('password') != data.get('password_confirm'):
             raise serializers.ValidationError({
-                'password_confirm': 'Passwords do not match.'
+                'password_confirm': 'passwords_not_match'
             })
         return data
 
     def create(self, validated_data):
-        """Create CustomUser first, then Company"""
         validated_data.pop('password_confirm')
 
-        # 1. Create the CustomUser
-        user = CustomUser.objects.create_user(
-            username=validated_data['email'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            role='company'
-        )
-
-        # 2. Create the Company linked to that user
-        company = Company.objects.create(
-            user=user,
+        return Company.objects.create(
             company_name=validated_data['company_name'],
+            email=validated_data['email'].lower().strip(),
             phone_number=validated_data['phone_number'],
+            password=make_password(validated_data['password']),
             governorate=validated_data['governorate'],
             company_type=validated_data['company_type'],
-            website_url=validated_data.get('website_url', ''),
+            website_url=validated_data.get('website_url') or None,
             description=validated_data['description'],
         )
 
-        return company
 
+# =========================
+# COMPANY LOGIN
+# =========================
 
 class CompanyLoginSerializer(serializers.Serializer):
-    """Serializer for Company login"""
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField()
 
+
+# =========================
+# COMPANY DETAIL
+# =========================
 
 class CompanyDetailSerializer(serializers.ModelSerializer):
-    """Serializer for displaying company details"""
-    email = serializers.EmailField(source='user.email', read_only=True)
-
     class Meta:
         model = Company
         fields = [
-            'id', 'company_name', 'email', 'phone_number', 'governorate',
-            'company_type', 'website_url', 'description', 'created_at', 'is_active'
+            'id', 'company_name', 'email', 'phone_number',
+            'governorate', 'company_type', 'website_url', 'description'
         ]
-        read_only_fields = ['id', 'created_at']
 
+
+# =========================
+# CHOICES
+# =========================
 
 class ChoicesSerializer(serializers.Serializer):
-    """Serializer for returning all available choices"""
     governorates = serializers.SerializerMethodField()
     company_types = serializers.SerializerMethodField()
 
     def get_governorates(self, obj):
-        return [{'value': code, 'label': label} for code, label in GOVERNORATE_CHOICES]
+        return [{"value": v, "label": l} for v, l in GOVERNORATE_CHOICES]
 
     def get_company_types(self, obj):
-        return [{'value': code, 'label': label} for code, label in COMPANY_TYPE_CHOICES]
+        return [{"value": v, "label": l} for v, l in COMPANY_TYPE_CHOICES]
+
+
+# =========================
+# EMAIL VERIFICATION
+# =========================
+
+class EmailVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(required=False, allow_blank=True)
+    token = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+    def validate(self, data):
+        if not data.get('otp') and not data.get('token'):
+            raise serializers.ValidationError("otp_or_token_required")
+        return data
+
+
+# =========================
+# RESEND OTP
+# =========================
+
+class ResendOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+
+# =========================
+# GOOGLE LOGIN RESPONSE
+# =========================
+
+class GoogleLoginResponseSerializer(serializers.Serializer):
+    is_new_user = serializers.BooleanField()
+    is_profile_completed = serializers.BooleanField()
+    access_token = serializers.CharField()
+    refresh_token = serializers.CharField()
+    user = serializers.SerializerMethodField()
+
+    def get_user(self, obj):
+        user = obj['user']
+        return {
+            'email': user.email,
+            'full_name': getattr(user, 'full_name', ''),
+        }

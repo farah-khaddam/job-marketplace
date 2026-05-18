@@ -1,0 +1,10 @@
+{
+  "Full name must contain letters only.": "يجب أن يحتوي الاسم الكامل على أحرف فقط.",
+  "Phone number must contain numbers only.": "يجب أن يحتوي رقم الهاتف على أرقام فقط.",
+  "Phone number must be at least 9 digits.": "يجب أن يكون رقم الهاتف 9 أرقام على الأقل.",
+  "Phone number cannot exceed 15 digits.": "لا يمكن أن يتجاوز رقم الهاتف 15 رقمًا.",
+  "Invalid email format.": "تنسيق البريد الإلكتروني غير صالح.",
+  "Password must be at least 8 characters.": "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
+  "Passwords do not match.": "كلمتا المرور غير متطابقتين.",
+  "This email is already registered.": "هذا البريد الإلكتروني مسجل بالفعل."
+}

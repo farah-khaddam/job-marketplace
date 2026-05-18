@@ -1,5 +1,36 @@
 from django.contrib import admin
-from .models import JobSeeker, Company
+from .models import JobSeeker, Company, EmailVerification
+
+@admin.register(EmailVerification)
+class EmailVerificationAdmin(admin.ModelAdmin):
+    """Admin interface for Email Verification (Pending Registrations)"""
+    
+    list_display = ['email', 'created_at', 'expires_at', 'is_expired']
+    list_filter = ['created_at', 'expires_at']
+    search_fields = ['email']
+    readonly_fields = ['email', 'otp_hash', 'payload', 'created_at', 'expires_at']
+    
+    fieldsets = (
+        ('Email Information', {
+            'fields': ('email',)
+        }),
+        ('OTP Details', {
+            'fields': ('otp_hash',)
+        }),
+        ('Payload', {
+            'fields': ('payload',)
+        }),
+        ('Timing', {
+            'fields': ('created_at', 'expires_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return True
 
 @admin.register(JobSeeker)
 class JobSeekerAdmin(admin.ModelAdmin):

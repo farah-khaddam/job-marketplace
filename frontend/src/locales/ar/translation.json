@@ -40,7 +40,10 @@
   "submit": "إنشاء الحساب",
   "error_required": "يرجى تعبئة جميع الحقول",
   "error_password_match": "كلمة المرور غير متطابقة",
-  "error_password_length": "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
+  "error_password_length": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
+  "error_full_name_invalid": "يجب أن يحتوي الاسم الكامل على أحرف ومسافات فقط",
+  "error_phone_length_range": "يجب أن يكون رقم الهاتف بين 9 و 10 أرقام",
+  "error_email_format": "يرجى إدخال بريد إلكتروني صالح بالشكل: example@email.com"
 },
 "company_signup": {
   "title": "تسجيل شركة جديدة",
