@@ -45,8 +45,26 @@
   "error_password_length": "Password must be at least 8 characters",
   "error_full_name_invalid": "Full name must contain letters and spaces only",
   "error_phone_length_range": "Phone number must be between 9 and 10 digits",
-  "error_email_format": "Email must be like example@example.com"
+  "error_email_format": "Email must be like example@example.com",
+  "otp_title": "Verify your email",
+  "otp_subtitle": "We sent a 6-digit code to",
+  "otp_label": "Verification Code",
+  "verifying": "Verifying...",
+  "verify": "Verify",
+  "resend_code": "Resend Code",
+  "back": "Back",
+  "submitting": "Creating account...",
+  "success_title": "Account created successfully",
+"success_message": "Your account has been created. You can now log in and start applying for jobs.",
+"go_to_login": "Go to Login",
+"otp_error_wait": "Please wait before requesting another code",
+"otp_error_limit": "Too many OTP requests. Please try again later",
+"otp_expired": "Verification code expired",
+"email_exists": "This email is already registered",
+"error_otp_invalid": "Invalid verification code",
+"resend_code_in": "Resend code in {{seconds}}s"
 },
+
 "company_signup": {
   "title": "Register a new company",
   "company_name": "Company Name",
@@ -66,6 +84,10 @@
   "error_required": "Please fill in all required fields",
   "error_password_match": "Passwords do not match",
   "error_password_length": "Password must be at least 8 characters"
+},
+"country_code": {
+  "select": "Select country code",
+  "loading": "Loading country codes..."
 },
 "pending": {
   "title": "Your request is under review",

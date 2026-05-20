@@ -1,12 +1,9 @@
 import logging
-import secrets
-import hashlib
 from datetime import timedelta
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.contrib.auth.hashers import check_password, make_password
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view
@@ -18,6 +15,7 @@ from .serializers import (
     CompanyRegisterSerializer, CompanyLoginSerializer, CompanyDetailSerializer,
     ChoicesSerializer
 )
+from .services.otp_service import send_job_seeker_otp, verify_job_seeker_otp
 
 logger = logging.getLogger(__name__)
 
@@ -25,66 +23,6 @@ logger = logging.getLogger(__name__)
 def home(request):
     """Welcome endpoint to verify API is running"""
     return JsonResponse({"message": "Job Portal API is working 🚀"})
-
-
-def generate_otp():
-    return '{:06d}'.format(secrets.randbelow(1000000))
-
-
-def hash_otp(otp: str) -> str:
-    """Hash OTP using SHA-256."""
-    return hashlib.sha256(otp.encode()).hexdigest()
-
-
-from django.core.mail import EmailMultiAlternatives
-from django.conf import settings
-
-
-def send_verification_email(email, otp):
-    subject = 'Verify your email address'
-
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@jobportal.local')
-
-    text_content = f"""
-Your verification code is: {otp}
-This code expires in 10 minutes.
-"""
-
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; background:#f6f6f6; padding:20px;">
-        <div style="max-width:500px; margin:auto; background:white; padding:20px; border-radius:10px;">
-            
-            <h2 style="color:#333;">Email Verification</h2>
-            <p>Use the code below to verify your account:</p>
-
-            <div style="
-                font-size:24px;
-                letter-spacing:5px;
-                font-weight:bold;
-                background:#f0f0f0;
-                padding:10px;
-                text-align:center;
-                border-radius:8px;
-                margin:20px 0;
-            ">
-                {otp}
-            </div>
-
-            <p style="color:#777;">
-                This code will expire in <b>10 minutes</b>.
-            </p>
-
-            <p style="color:#999; font-size:12px;">
-                If you didn’t request this code, you can ignore this email.
-            </p>
-
-        </div>
-    </div>
-    """
-
-    msg = EmailMultiAlternatives(subject, text_content, from_email, [email])
-    msg.attach_alternative(html_content, "text/html")
-    msg.send()
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
@@ -151,45 +89,12 @@ def job_seeker_register(request):
         - Error (400): Validation errors
     """
     serializer = JobSeekerOTPRegisterSerializer(data=request.data)
-    try:
-        serializer.is_valid(raise_exception=True)
-    except serializers.ValidationError as exc:
-        logger.debug('Job seeker registration validation errors: %s', exc.detail)
-        print('Job seeker registration validation errors:', exc.detail)
-        if isinstance(exc.detail, dict) and 'email' in exc.detail:
-            email_errors = exc.detail.get('email', [])
-            if any('registered' in str(error).lower() for error in email_errors):
-                return Response(
-                    {'message': 'Email already registered'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        raise
+    serializer.is_valid(raise_exception=True)
 
     validated_data = serializer.validated_data
     email = validated_data['email'].lower()
-    otp = generate_otp()
-    otp_hash = hash_otp(otp)
-    expires_at = timezone.now() + timedelta(minutes=10)
 
-    EmailVerification.objects.update_or_create(
-        email=email,
-        defaults={
-            'otp_hash': otp_hash,
-            'payload': {
-                'full_name': validated_data['full_name'],
-                'phone_number': validated_data['phone_number'],
-                'password': validated_data['password'],
-            },
-            'expires_at': expires_at,
-        }
-    )
-
-    send_verification_email(email, otp)
-
-    return Response(
-        {'message': 'Verification code sent to your email'},
-        status=status.HTTP_200_OK
-    )
+    return send_job_seeker_otp(email, validated_data)
 
 
 @api_view(['POST'])
@@ -206,48 +111,7 @@ def verify_otp(request):
     email = serializer.validated_data['email'].lower()
     otp = serializer.validated_data['otp']
 
-    try:
-        verification = EmailVerification.objects.get(email=email)
-    except EmailVerification.DoesNotExist:
-        return Response(
-            {'error': 'Invalid verification code'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if verification.is_expired:
-        verification.delete()
-        return Response(
-            {'error': 'Verification code expired'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    otp_hash = hash_otp(otp)
-    if verification.otp_hash != otp_hash:
-        return Response(
-            {'error': 'Invalid verification code'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    payload = verification.payload
-    if JobSeeker.objects.filter(email__iexact=email).exists() or Company.objects.filter(email__iexact=email).exists():
-        verification.delete()
-        return Response(
-            {'error': 'Email already registered'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    job_seeker = JobSeeker.objects.create(
-        full_name=payload['full_name'],
-        email=email,
-        phone_number=payload['phone_number'],
-        password=make_password(payload['password']),
-    )
-    verification.delete()
-
-    return Response(
-        {'message': 'Email verified and account created successfully'},
-        status=status.HTTP_201_CREATED
-    )
+    return verify_job_seeker_otp(email, otp)
 
 
 @api_view(['POST'])

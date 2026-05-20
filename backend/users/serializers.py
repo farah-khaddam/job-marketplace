@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 from .models import JobSeeker, Company, EmailVerification, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
 from django.contrib.auth import get_user_model
@@ -117,8 +118,15 @@ class JobSeekerOTPRegisterSerializer(serializers.Serializer):
     def validate_email(self, value):
         value = validate_email_format(value)
         value = value.lower().strip()
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("email_already_registered")
+
+        if (JobSeeker.objects.filter(email__iexact=value).exists() or
+                Company.objects.filter(email__iexact=value).exists()):
+            language = get_language() or ''
+            if language.startswith('ar'):
+                message = 'هذا البريد الإلكتروني مسجل مسبقاً'
+            else:
+                message = 'This email is already registered.'
+            raise serializers.ValidationError(message)
         return value
 
     def validate_password(self, value):

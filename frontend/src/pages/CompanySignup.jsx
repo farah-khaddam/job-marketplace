@@ -2,6 +2,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import EyeIcon from "../components/EyeIcon"
+import CountryCodeSelect from "../components/CountryCodeSelect"
+import { sanitizePhoneNumber } from "../utils/validation"
 import LangToggle from "../components/LangToggle"
 import { inputClass, labelClass, btnPrimary } from "../utils/styles"
 
@@ -38,6 +40,7 @@ export default function CompanySignup() {
     companyName: "",
     email: "",
     phone: "",
+    phoneCountryCode: "",
     governorate: "",
     sector: "",
     website: "",
@@ -53,7 +56,7 @@ export default function CompanySignup() {
     e.preventDefault()
 
     if (
-      !form.companyName || !form.email || !form.phone ||
+      !form.companyName || !form.email || !form.phoneCountryCode || !form.phone ||
       !form.governorate || !form.sector ||
       !form.description || !form.password || !form.confirmPassword
     ) {
@@ -72,7 +75,8 @@ export default function CompanySignup() {
     }
 
     setError("")
-    console.log("CompanySignup:", form)
+    const payload = { ...form, phone: `${form.phoneCountryCode}${form.phone}` }
+    console.log("CompanySignup:", payload)
     navigate("/pending")
   }
 
@@ -121,14 +125,26 @@ export default function CompanySignup() {
             </div>
             <div className="flex-1">
               <label className={labelClass}>{t("company_signup.phone")}</label>
-              <input
-                type="tel"
-                required
-                placeholder="+963 9X XXX XXXX"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className={inputClass}
-              />
+              <div className="flex gap-2">
+                <div className="w-40">
+                  <CountryCodeSelect
+                    value={form.phoneCountryCode}
+                    onChange={(v) => setForm((p) => ({ ...p, phoneCountryCode: v }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="tel"
+                    required
+                    placeholder="9X XXX XXXX"
+                    value={form.phone}
+                    onChange={(e) => setForm((p) => ({ ...p, phone: sanitizePhoneNumber(e.target.value) }))}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

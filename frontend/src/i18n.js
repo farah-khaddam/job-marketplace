@@ -9,10 +9,10 @@ i18n.use(initReactI18next).init({
     ar: { translation: ar },
     en: { translation: en },
   },
-  lng: "ar",            // اللغة الافتراضية
-  fallbackLng: "en",    // لو ما لقى ترجمة يرجع للإنجليزي
+  lng: "ar",           
+  fallbackLng: "en",   
   interpolation: {
-    escapeValue: false  // React بتعمل هذا تلقائيًا
+    escapeValue: false
   }
 })
 
