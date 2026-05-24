@@ -2,12 +2,15 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 ROLE_CHOICES = (
     ('job_seeker', 'Job Seeker'),
     ('company', 'Company'),
 )
+
+
 
 class CustomUser(AbstractUser):
     role = models.CharField(

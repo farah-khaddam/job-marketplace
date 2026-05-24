@@ -159,7 +159,7 @@ export default function SeekerSignup() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(resolveApiError(data, "seeker_signup.error_required"))
+        setError(resolveApiError(data, "seeker_signup.error_general"))
         return
       }
       setCooldown(60)
@@ -319,8 +319,7 @@ export default function SeekerSignup() {
       <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px]" dir={textDir}>
         <h2 className="text-2xl font-medium text-gray-900 mb-4">{t("seeker_signup.title")}</h2>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           {/* الاسم الكامل */}
           <div>
             <label className={labelClass}>{t("seeker_signup.full_name")}</label>

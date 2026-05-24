@@ -89,7 +89,12 @@ def job_seeker_register(request):
         - Error (400): Validation errors
     """
     serializer = JobSeekerOTPRegisterSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        errors = serializer.errors
+        if "email" in errors:
+            code = errors["email"][0]
+            return Response({"error_code": code}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
     validated_data = serializer.validated_data
     email = validated_data['email'].lower()

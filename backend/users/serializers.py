@@ -110,19 +110,16 @@ class JobSeekerOTPRegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=150)
     phone_number = serializers.CharField()
 
+    
     def validate_email(self, value):
         value = validate_email_format(value)
         value = value.lower().strip()
 
         if (JobSeeker.objects.filter(email__iexact=value).exists() or
-                Company.objects.filter(email__iexact=value).exists()):
-            language = get_language() or ''
-            if language.startswith('ar'):
-                message = 'هذا البريد الإلكتروني مسجل مسبقاً'
-            else:
-                message = 'This email is already registered.'
-            raise serializers.ValidationError(message)
+            Company.objects.filter(email__iexact=value).exists()):
+            raise serializers.ValidationError("email_already_registered")
         return value
+
 
     def validate_password(self, value):
         return validate_password(value)
