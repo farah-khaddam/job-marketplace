@@ -17,7 +17,6 @@ function App() {
       <Route path="/signup/seeker" element={<SeekerSignup />} />
       <Route path="/signup/company" element={<CompanySignup />} />
       <Route path="/pending" element={<PendingApproval />} />
-      <Route path="/" element={<Home />} />
       <Route path="/company/dashboard" element={<CompanyDashboard />} />
     </Routes>
   )

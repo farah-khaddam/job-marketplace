@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
 import EyeIcon from "../components/EyeIcon"
+import LangToggle from "../components/LangToggle"
 import CountryCodeSelect from "../components/CountryCodeSelect"
 import { inputClass, labelClass } from "../utils/styles"
 import {
@@ -11,38 +13,31 @@ import {
   doPasswordsMatch,
 } from "../utils/validation"
 
+const API_BASE = "http://127.0.0.1:8000"
+
 const STEPS = {
   REGISTER: "register",
   OTP: "otp",
   SUCCESS: "success",
 }
 
-
 export default function SeekerSignup() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const textDir = i18n.language === "ar" ? "rtl" : "ltr"
 
   const [step, setStep] = useState(STEPS.REGISTER)
   const [loading, setLoading] = useState(false)
-
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState("")
   const [fieldErrors, setFieldErrors] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
+    fullName: "", email: "", phone: "", password: "", confirmPassword: "",
   })
   const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    phoneCountryCode: "+963",
-    password: "",
-    confirmPassword: "",
+    fullName: "", email: "", phone: "", phoneCountryCode: "+963",
+    password: "", confirmPassword: "",
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   // ─── OTP state ────────────────────────────────────────────────────────────
   const [otpValues, setOtpValues] = useState(Array(6).fill(""))
@@ -50,6 +45,13 @@ export default function SeekerSignup() {
   const [cooldown, setCooldown] = useState(60)
   const inputRefs = useRef([])
 
+  useEffect(() => {
+    if (step !== STEPS.OTP || cooldown <= 0) return
+    const timer = setInterval(() => setCooldown((p) => p - 1), 1000)
+    return () => clearInterval(timer)
+  }, [cooldown, step])
+
+  // ─── OTP handlers ─────────────────────────────────────────────────────────
   const handleOtpChange = (val, idx) => {
     const digit = val.replace(/\D/g, "").slice(-1)
     const next = [...otpValues]
@@ -64,12 +66,8 @@ export default function SeekerSignup() {
     if (e.key === "Backspace") {
       e.preventDefault()
       const next = [...otpValues]
-      if (next[idx]) {
-        next[idx] = ""
-      } else if (idx > 0) {
-        next[idx - 1] = ""
-        inputRefs.current[idx - 1]?.focus()
-      }
+      if (next[idx]) { next[idx] = "" }
+      else if (idx > 0) { next[idx - 1] = ""; inputRefs.current[idx - 1]?.focus() }
       setOtpValues(next)
       setOtp(next.join(""))
     }
@@ -85,112 +83,69 @@ export default function SeekerSignup() {
     inputRefs.current[Math.min(paste.length, 5)]?.focus()
   }
 
-  useEffect(() => {
-    if (step !== STEPS.OTP || cooldown <= 0) return
-    const timer = setInterval(() => {
-      setCooldown((prev) => prev - 1)
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [cooldown, step])
-
- 
-  const resolveApiError = (data, fallbackKey) => {
-    if (data?.error_code) {
-      return t(`seeker_signup.${data.error_code}`)
-    }
-    return t(fallbackKey)
-  }
-
   // ─── Field helpers ────────────────────────────────────────────────────────
-
-  const updateFieldError = (field, message) => {
-    setFieldErrors((current) => ({ ...current, [field]: message }))
-  }
+  const updateFieldError = (field, message) =>
+    setFieldErrors((prev) => ({ ...prev, [field]: message }))
 
   const handleFullNameChange = (value) => {
     const sanitized = sanitizeFullName(value)
-    setForm((prev) => ({ ...prev, fullName: sanitized }))
+    setForm((p) => ({ ...p, fullName: sanitized }))
     setError("")
-    updateFieldError(
-      "fullName",
-      value !== sanitized ? t("seeker_signup.error_full_name_invalid") : ""
-    )
+    updateFieldError("fullName", value !== sanitized ? t("seeker_signup.error_full_name_invalid") : "")
   }
-  useEffect(() => {
-  console.log("test resend:", t("seeker_signup.resend_code_in", { seconds: 30 }))
-  console.log("test otp error:", t("seeker_signup.error_otp_invalid"))
-}, [])
+
+  const handleEmailChange = (value) => {
+    setForm((p) => ({ ...p, email: value }))
+    setError("")
+    updateFieldError("email", value && !isEmailFormatValid(value) ? t("seeker_signup.error_email_format") : "")
+  }
 
   const handlePhoneChange = (value) => {
     const digitsOnly = value.replace(/\D/g, "")
     const sanitized = sanitizePhoneNumber(value)
-    setForm((prev) => ({ ...prev, phone: sanitized }))
+    setForm((p) => ({ ...p, phone: sanitized }))
     setError("")
-    updateFieldError(
-      "phone",
+    updateFieldError("phone",
       digitsOnly && (digitsOnly.length < 9 || digitsOnly.length > 10)
-        ? t("seeker_signup.error_phone_length_range")
-        : ""
-    )
-  }
-
-  const handleEmailChange = (value) => {
-    setForm((prev) => ({ ...prev, email: value }))
-    setError("")
-    updateFieldError(
-      "email",
-      value && !isEmailFormatValid(value)
-        ? t("seeker_signup.error_email_format")
-        : ""
+        ? t("seeker_signup.error_phone_length_range") : ""
     )
   }
 
   const handlePasswordChange = (value) => {
-    setForm((prev) => ({ ...prev, password: value }))
+    setForm((p) => ({ ...p, password: value }))
     setError("")
-    updateFieldError(
-      "password",
-      value && !isPasswordLengthValid(value)
-        ? t("seeker_signup.error_password_length")
-        : ""
-    )
-    updateFieldError(
-      "confirmPassword",
+    updateFieldError("password", value && !isPasswordLengthValid(value) ? t("seeker_signup.error_password_length") : "")
+    updateFieldError("confirmPassword",
       form.confirmPassword && !doPasswordsMatch(value, form.confirmPassword)
-        ? t("seeker_signup.error_password_match")
-        : ""
+        ? t("seeker_signup.error_password_match") : ""
     )
   }
 
   const handleConfirmPasswordChange = (value) => {
-    setForm((prev) => ({ ...prev, confirmPassword: value }))
+    setForm((p) => ({ ...p, confirmPassword: value }))
     setError("")
-    updateFieldError(
-      "confirmPassword",
-      value && !doPasswordsMatch(form.password, value)
-        ? t("seeker_signup.error_password_match")
-        : ""
+    updateFieldError("confirmPassword",
+      value && !doPasswordsMatch(form.password, value) ? t("seeker_signup.error_password_match") : ""
     )
   }
 
-  // ─── STEP 1: Submit registration ──────────────────────────────────────────
+  const resolveApiError = (data, fallbackKey) =>
+    data?.error_code ? t(`seeker_signup.${data.error_code}`) : t(fallbackKey)
 
+  // ─── STEP 1: Submit registration ──────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!form.fullName || !form.email || !form.phoneCountryCode || !form.phone || !form.password || !form.confirmPassword) {
+    if (!form.fullName || !form.email || !form.phone || !form.password || !form.confirmPassword) {
       setError(t("seeker_signup.error_required"))
       return
     }
-
-    const hasFieldError = Object.values(fieldErrors).some(Boolean)
-    if (hasFieldError) return
+    if (Object.values(fieldErrors).some(Boolean)) return
 
     setError("")
     setLoading(true)
-
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/job-seeker/register/", {
+      const res = await fetch(`${API_BASE}/api/auth/job-seeker/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -201,15 +156,12 @@ export default function SeekerSignup() {
           password_confirm: form.confirmPassword,
         }),
       })
-
       const data = await res.json()
 
       if (!res.ok) {
-      
         setError(resolveApiError(data, "seeker_signup.error_required"))
         return
       }
-
       setCooldown(60)
       setStep(STEPS.OTP)
     } catch {
@@ -220,26 +172,18 @@ export default function SeekerSignup() {
   }
 
   // ─── STEP 2: Verify OTP ───────────────────────────────────────────────────
-
   const handleVerifyOtp = async (e) => {
     e.preventDefault()
     setError("")
     setLoading(true)
-
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/job-seeker/verify-otp/", {
+      const res = await fetch(`${API_BASE}/api/auth/job-seeker/verify-otp/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, otp }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(resolveApiError(data, "seeker_signup.error_otp_invalid"))
-        return
-      }
-
+      if (!res.ok) { setError(resolveApiError(data, "seeker_signup.error_otp_invalid")); return }
       setStep(STEPS.SUCCESS)
     } catch {
       setError(t("seeker_signup.error_network"))
@@ -249,15 +193,12 @@ export default function SeekerSignup() {
   }
 
   // ─── STEP 2: Resend OTP ───────────────────────────────────────────────────
-
   const handleResendOtp = async () => {
     if (cooldown > 0) return
-
     setError("")
     setLoading(true)
-
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/job-seeker/register/", {
+      const res = await fetch(`${API_BASE}/api/auth/job-seeker/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -268,24 +209,15 @@ export default function SeekerSignup() {
           password_confirm: form.confirmPassword,
         }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(resolveApiError(data, "seeker_signup.error_network"))
-        return
-      }
-
+      if (!res.ok) { setError(resolveApiError(data, "seeker_signup.error_network")); return }
       setCooldown(60)
-      setError("")
     } catch {
       setError(t("seeker_signup.error_network"))
     } finally {
       setLoading(false)
     }
   }
-
-  // ─── Language toggle ──────────────────────────────────────────────────────
 
   const langToggle = (
     <button
@@ -296,49 +228,39 @@ export default function SeekerSignup() {
     </button>
   )
 
-  // ─── SUCCESS screen ───────────────────────────────────────────────────────
-
+  // ─── SUCCESS ──────────────────────────────────────────────────────────────
   if (step === STEPS.SUCCESS) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         {langToggle}
         <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px] text-center" dir={textDir}>
-          <h2 className="text-2xl font-medium text-gray-900 mb-4">
-            {t("seeker_signup.success_title")}
-          </h2>
-          <p className="text-gray-600 mb-6">
-            {t("seeker_signup.success_message")}
-          </p>
-          <a
-            href="/login"
-            className="w-full inline-block py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
+          <h2 className="text-2xl font-medium text-gray-900 mb-2">{t("seeker_signup.success_title")}</h2>
+          <p className="text-gray-500 text-sm mb-6">{t("seeker_signup.success_message")}</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
           >
             {t("seeker_signup.go_to_login")}
-          </a>
+          </button>
         </div>
       </div>
     )
   }
 
-  // ─── OTP screen ───────────────────────────────────────────────────────────
-
+  // ─── OTP ──────────────────────────────────────────────────────────────────
   if (step === STEPS.OTP) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         {langToggle}
         <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px]" dir={textDir}>
-
-          <h2 className="text-2xl font-medium text-gray-900 mb-2">
-            {t("seeker_signup.otp_title")}
-          </h2>
+          <h2 className="text-2xl font-medium text-gray-900 mb-2">{t("seeker_signup.otp_title")}</h2>
           <p className="text-gray-500 text-sm mb-6">
             {t("seeker_signup.otp_subtitle")}{" "}
             <span className="font-medium text-gray-800">{form.email}</span>
           </p>
 
           <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
-
-            {/* ─── 6-box OTP input ─── */}
             <div className="flex gap-2 justify-center" dir="ltr">
               {otpValues.map((val, idx) => (
                 <input
@@ -374,40 +296,28 @@ export default function SeekerSignup() {
               disabled={loading || cooldown > 0}
               className="text-blue-600 hover:underline disabled:opacity-50"
             >
-            
               {cooldown > 0
                 ? t("seeker_signup.resend_code_in", { seconds: cooldown })
                 : t("seeker_signup.resend_code")}
             </button>
             <button
-              onClick={() => {
-                setStep(STEPS.REGISTER)
-                setError("")
-                setOtpValues(Array(6).fill(""))
-                setOtp("")
-              }}
+              onClick={() => { setStep(STEPS.REGISTER); setError(""); setOtpValues(Array(6).fill("")); setOtp("") }}
               className="text-gray-500 hover:underline"
             >
               {t("seeker_signup.back")}
             </button>
           </div>
-
         </div>
       </div>
     )
   }
 
-  // ─── REGISTER screen ──────────────────────────────────────────────────────
-
+  // ─── REGISTER ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       {langToggle}
-
       <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px]" dir={textDir}>
-
-        <h2 className="text-2xl font-medium text-gray-900 mb-4">
-          {t("seeker_signup.title")}
-        </h2>
+        <h2 className="text-2xl font-medium text-gray-900 mb-4">{t("seeker_signup.title")}</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
@@ -415,32 +325,26 @@ export default function SeekerSignup() {
           <div>
             <label className={labelClass}>{t("seeker_signup.full_name")}</label>
             <input
-              type="text"
-              required
+              type="text" required
               placeholder={t("seeker_signup.full_name_placeholder")}
               value={form.fullName}
               onChange={(e) => handleFullNameChange(e.target.value)}
               className={inputClass}
             />
-            {fieldErrors.fullName && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.fullName}</p>
-            )}
+            {fieldErrors.fullName && <p className="text-red-500 text-xs mt-1">{fieldErrors.fullName}</p>}
           </div>
 
           {/* البريد الإلكتروني */}
           <div>
             <label className={labelClass}>{t("seeker_signup.email")}</label>
             <input
-              type="email"
-              required
+              type="email" required
               placeholder="example@email.com"
               value={form.email}
               onChange={(e) => handleEmailChange(e.target.value)}
               className={inputClass}
             />
-            {fieldErrors.email && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
-            )}
+            {fieldErrors.email && <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>}
           </div>
 
           {/* رقم الهاتف */}
@@ -452,23 +356,19 @@ export default function SeekerSignup() {
                   value={form.phoneCountryCode}
                   onChange={(v) => setForm((p) => ({ ...p, phoneCountryCode: v }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"
-                  required
                 />
               </div>
               <div className="flex-1">
                 <input
-                  type="tel"
-                  required
-                  placeholder="5X XXX XXXX"
+                  type="tel" required
+                  placeholder="9X XXX XXXX"
                   value={form.phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   className={inputClass}
                 />
               </div>
             </div>
-            {fieldErrors.phone && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>
-            )}
+            {fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
           </div>
 
           {/* كلمة المرور */}
@@ -476,24 +376,18 @@ export default function SeekerSignup() {
             <label className={labelClass}>{t("seeker_signup.password")}</label>
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"}
-                required
+                type={showPassword ? "text" : "password"} required
                 placeholder="••••••••"
                 value={form.password}
                 onChange={(e) => handlePasswordChange(e.target.value)}
                 className={inputClass}
               />
-              {fieldErrors.password && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${textDir === "rtl" ? "left-3" : "right-3"}`}
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${textDir === "rtl" ? "left-3" : "right-3"}`}>
                 <EyeIcon open={showPassword} />
               </button>
             </div>
+            {fieldErrors.password && <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>}
           </div>
 
           {/* تأكيد كلمة المرور */}
@@ -501,39 +395,38 @@ export default function SeekerSignup() {
             <label className={labelClass}>{t("seeker_signup.confirm_password")}</label>
             <div className="relative">
               <input
-                type={showConfirm ? "text" : "password"}
-                required
+                type={showConfirm ? "text" : "password"} required
                 placeholder="••••••••"
                 value={form.confirmPassword}
                 onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 className={inputClass}
               />
-              {fieldErrors.confirmPassword && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${textDir === "rtl" ? "left-3" : "right-3"}`}
-              >
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${textDir === "rtl" ? "left-3" : "right-3"}`}>
                 <EyeIcon open={showConfirm} />
               </button>
             </div>
+            {fieldErrors.confirmPassword && <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>}
           </div>
 
           {error && <p className="text-red-500 text-xs">{error}</p>}
 
           <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1"
+            type="submit" disabled={loading}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1 flex items-center justify-center gap-2"
           >
-            {loading ? t("seeker_signup.submitting") : t("seeker_signup.submit")}
+            {loading ? (
+              <>
+                <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                {t("seeker_signup.submitting")}
+              </>
+            ) : t("seeker_signup.submit")}
           </button>
 
         </form>
       </div>
     </div>
   )
-  
 }
