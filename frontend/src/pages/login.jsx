@@ -1,21 +1,22 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import EyeIcon from "../components/EyeIcon"
 import LangToggle from "../components/LangToggle"
 import { inputClass, labelClass, btnPrimary } from "../utils/styles"
 import { useTranslation } from "react-i18next"
 
-
-
+const API_BASE = "http://localhost:8000/api"
 
 export default function Login() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const textDir = i18n.language === "ar" ? "rtl" : "ltr"
   const [form, setForm] = useState({ email: "", password: "" })
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!form.email || !form.password) {
@@ -24,13 +25,37 @@ export default function Login() {
     }
 
     setError("")
-    console.log("Login:", { ...form })
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        localStorage.setItem("token", data.key)
+        // TODO: لما رفيقتك تضيف الـ role، نفرّق هون بين الشركة والباحث
+        navigate("/")
+      } else {
+        const firstError = Object.values(data)[0]
+        setError(Array.isArray(firstError) ? firstError[0] : firstError)
+      }
+
+    } catch {
+      setError(t("login.error_network"))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <LangToggle />
-     
+      <LangToggle />
+
       <div className="w-[900px] h-[520px] flex-wrap bg-white rounded-2xl shadow-xl overflow-hidden flex">
 
         {/* ===== Left Side ===== */}
@@ -60,8 +85,8 @@ export default function Login() {
         </div>
 
         {/* ===== Right Side ===== */}
-        <div className="w-full md:w-[55%] flex flex-col justify-center px-10 py-12 " dir={textDir} > 
-          <h2 className="text-2xl font-medium text-gray-900 mb-1"> {t("login.title")}</h2>
+        <div className="w-full md:w-[55%] flex flex-col justify-center px-10 py-12" dir={textDir}>
+          <h2 className="text-2xl font-medium text-gray-900 mb-1">{t("login.title")}</h2>
           <p className="text-sm text-gray-500 mb-6">
             {t("login.no_account")}{" "}
             <Link to="/signup" className="text-blue-600 hover:underline">
@@ -69,14 +94,11 @@ export default function Login() {
             </Link>
           </p>
 
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 ">
+            {/* Email */}
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-              <label className={labelClass}>
-               {t("login.email")}
-              </label>
-              </div>
+              <label className={labelClass}>{t("login.email")}</label>
               <input
                 type="email"
                 required
@@ -87,16 +109,15 @@ export default function Login() {
               />
             </div>
 
+            {/* Password */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className={labelClass}>
-                  {t("login.password")}
-                </label>
+                <label className={labelClass}>{t("login.password")}</label>
                 <a href="#" className="text-xs text-blue-600 hover:underline">
-                 {t("login.forgot")}
+                  {t("login.forgot")}
                 </a>
               </div>
-             <div className="relative">
+              <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
@@ -110,25 +131,35 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${textDir === "rtl" ? "left-3" : "right-3"}`}
                 >
-                 <EyeIcon open={showPassword} />
+                  <EyeIcon open={showPassword} />
                 </button>
               </div>
+              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
-              className={btnPrimary}
+              disabled={loading}
+              className={`${btnPrimary} flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed`}
             >
-             {t("login.submit")}
-            </button>
-          </form>
-          {error && (
-                <p className="text-red-500 text-xs mt-2">{error}</p>
+              {loading ? (
+                <>
+                  <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                  </svg>
+                  {t("login.loading")}
+                </>
+              ) : (
+                t("login.submit")
               )}
+            </button>
+
+          </form>
 
           <div className="flex items-center gap-3 my-4 text-xs text-gray-400">
             <span className="flex-1 h-px bg-gray-200" />
-            أو
+            {t("login.or")}
             <span className="flex-1 h-px bg-gray-200" />
           </div>
 

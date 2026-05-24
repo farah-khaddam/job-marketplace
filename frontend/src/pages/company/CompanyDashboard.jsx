@@ -13,7 +13,7 @@ const MOCK_STATS = [
 const MOCK_RECENT_APPS = [
   { id: 1, name: "أحمد الخطيب",   job_ar: "مطور Frontend", job_en: "Frontend Developer", time_ar: "منذ ساعتين",  time_en: "2h ago",    status: "pending",  initials: "أخ" },
   { id: 2, name: "سارة نور",      job_ar: "مصمم UI/UX",    job_en: "UI/UX Designer",     time_ar: "منذ 5 ساعات", time_en: "5h ago",    status: "reviewed", initials: "سن" },
-  { id: 3, name: "محمد البغدادي", job_ar: "مطور Backend",  job_en: "Backend Developer",  time_ar: "أمس",         time_en: "Yesterday", status: "accepted", initials: "مب" },
+  { id: 3, name: "محمد الاحمد", job_ar: "مطور Backend",  job_en: "Backend Developer",  time_ar: "أمس",         time_en: "Yesterday", status: "accepted", initials: "مب" },
   { id: 4, name: "لينا الحسن",    job_ar: "مطور Frontend", job_en: "Frontend Developer", time_ar: "منذ يومين",   time_en: "2d ago",    status: "rejected", initials: "لح" },
 ]
 
