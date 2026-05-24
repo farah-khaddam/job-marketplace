@@ -17,6 +17,6 @@ phone_number_min_length_validator = MinLengthValidator(
 )
 
 phone_number_max_length_validator = MaxLengthValidator(
-    15,
-    _('Phone number cannot exceed 15 digits.')
+    10,
+    _('Phone number cannot exceed 10 digits.')
 )

@@ -40,7 +40,7 @@
   "password": "Password",
   "confirm_password": "Confirm Password",
   "submit": "Create Account",
-  "error_required": "Please fill in all fields",
+  "error_required": "This email is already registered.",
   "error_password_match": "Passwords do not match",
   "error_password_length": "Password must be at least 8 characters",
   "error_full_name_invalid": "Full name must contain letters and spaces only",

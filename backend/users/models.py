@@ -63,9 +63,9 @@ class JobSeeker(models.Model):
         help_text="Email address for login and contact"
     )
     phone_regex = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$',
-        message='Phone number must be entered in the format: +999999999. Up to 15 digits allowed.'
-    )
+    regex=r'^\+\d{10,13}$',
+    message="Phone must be like +963991234567"
+)
     phone_number = models.CharField(
         validators=[phone_regex],
         max_length=17,
@@ -106,10 +106,12 @@ class Company(models.Model):
         unique=True,
         help_text="Company email for login and contact"
     )
+
     phone_regex = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$',
-        message='Phone number must be entered in the format: +999999999. Up to 15 digits allowed.'
-    )
+    regex=r'^\+\d{10,13}$',
+    message="Phone must be like +963991234567"
+)
+
     phone_number = models.CharField(
         validators=[phone_regex],
         max_length=17,

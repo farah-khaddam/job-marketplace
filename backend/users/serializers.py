@@ -41,17 +41,12 @@ def validate_phone_number_value(value):
         raise serializers.ValidationError("phone_required")
 
     value = str(value).strip()
-    value = re.sub(r"[^\d+]", "", value)
 
-    if not value.startswith("+"):
-        value = "+" + value
-
-    digits = value.replace("+", "")
-
-    if len(digits) < 9 or len(digits) > 15:
+    if len(value) < 11 or len(value) > 14:
         raise serializers.ValidationError("phone_invalid_length")
 
     return value
+
 
 
 def validate_email_not_registered(value):

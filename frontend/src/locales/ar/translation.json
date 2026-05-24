@@ -38,7 +38,7 @@
   "password": "كلمة المرور",
   "confirm_password": "تأكيد كلمة المرور",
   "submit": "إنشاء الحساب",
-  "error_required": "يرجى تعبئة جميع الحقول",
+  "error_required": "هذا الحساب مسجل بالفعل",
   "error_password_match": "كلمة المرور غير متطابقة",
   "error_password_length": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
   "error_full_name_invalid": "يجب أن يحتوي الاسم الكامل على أحرف ومسافات فقط",
