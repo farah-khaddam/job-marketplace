@@ -361,7 +361,7 @@ export default function SeekerSignup() {
               <div className="flex-1">
                 <input
                   type="tel" required
-                  placeholder="9X XXX XXXX"
+                  placeholder="XX XXX XXXXX"
                   value={form.phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   className={inputClass}
