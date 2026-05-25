@@ -18,32 +18,49 @@ CustomUser = get_user_model()
 
 def validate_email_format(value):
     if not value:
-        raise serializers.ValidationError("email_required")
+        raise serializers.ValidationError({
+            "email": "Email is required. Example: user@example.com"
+        })
 
     value = value.strip().lower()
 
-    email_regex = r'^[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'
+    email_regex = r'^[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$'
 
     if not re.match(email_regex, value):
-        raise serializers.ValidationError("invalid_email")
+        raise serializers.ValidationError({
+            "email": "Invalid email format. Example: user@example.com"
+        })
 
-    if len(value) > 254:
-        raise serializers.ValidationError("email_too_long")
+    domain = value.split('@')[1]
+    parts = domain.split('.')
 
-    if '..' in value or value.startswith('.') or value.endswith('.'):
-        raise serializers.ValidationError("invalid_email")
+    # لازم يكون فيه على الأقل example.com
+    if len(parts) < 2:
+        raise serializers.ValidationError({
+            "email": "Domain must be like example.com"
+        })
+
+    tld = parts[-1]
+
+    if len(tld) < 2:
+        raise serializers.ValidationError({
+            "email": "Invalid domain extension. Example: user@example.com"
+        })
 
     return value
 
-
 def validate_phone_number_value(value):
     if not value:
-        raise serializers.ValidationError("phone_required")
+        raise serializers.ValidationError({
+            "phone_number": "Phone number is required. Example: +XXXXXXXXXXX"
+        })
 
     value = str(value).strip()
 
-    if len(value) < 11 or len(value) > 14:
-        raise serializers.ValidationError("phone_invalid_length")
+    pattern = r'^\+\d{10,12}$'
+
+    if not re.fullmatch(pattern, value):
+        raise serializers.ValidationError("Phone number must include country code with 9–10 digits. Example: +XXXXXXXXXXX")
 
     return value
 
@@ -91,12 +108,11 @@ class CheckEmailSerializer(serializers.Serializer):
         return value.lower().strip()
 
     def validate(self, data):
-        email = data['email']
-        return {
-            "email": email,
-            "exists": CustomUser.objects.filter(email=email).exists()
-        }
-
+     email = data['email']
+     return {
+        "email": email,
+        "exists": CustomUser.objects.filter(email=email).exists()
+    }
 
 # =========================
 # JOB SEEKER OTP REGISTER
@@ -128,9 +144,15 @@ class JobSeekerOTPRegisterSerializer(serializers.Serializer):
         return validate_phone_number_value(value)
 
     def validate_full_name(self, value):
-        if not value or not value.strip():
-            raise serializers.ValidationError("full_name_required")
-        return value.strip()
+      value = value.strip()
+
+      if not value:
+        raise serializers.ValidationError("full_name_required")
+      if not re.fullmatch(r'[A-Za-z\u0600-\u06FF\s]+', value):
+        raise serializers.ValidationError("Full name must contain letters and spaces only")
+      if value.replace(" ", "") == "":
+        raise serializers.ValidationError("full_name_required")
+      return value
 
     def validate(self, data):
         if data.get('password') != data.get('password_confirm'):
@@ -152,9 +174,9 @@ class VerifyOTPSerializer(serializers.Serializer):
         return value.lower().strip()
 
     def validate_otp(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError("otp_must_be_numeric")
-        return value
+     if not value.isdigit():
+        raise serializers.ValidationError("otp_must_be_numeric")
+     return value
 
 
 # =========================
@@ -169,8 +191,11 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
 
     def validate_email(self, value):
-        value = validate_email_format(value)
-        return validate_email_not_registered(value)
+     value = validate_email_format(value)
+     value = value.lower().strip()
+
+     value = validate_email_not_registered(value)
+     return value
 
     def validate_password(self, value):
         return validate_password(value)
@@ -182,13 +207,6 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
         if not value or not value.strip():
             raise serializers.ValidationError("full_name_required")
         return value.strip()
-
-    def validate(self, data):
-        if data.get('password') != data.get('password_confirm'):
-            raise serializers.ValidationError({
-                'password_confirm': 'passwords_not_match'
-            })
-        return data
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
@@ -256,8 +274,10 @@ class CompanyRegisterSerializer(serializers.Serializer):
     description = serializers.CharField()
 
     def validate_email(self, value):
-        value = validate_email_format(value)
-        return validate_email_not_registered(value)
+     value = validate_email_format(value)
+     value = value.lower().strip()
+     value=validate_email_not_registered(value)
+     return value
 
     def validate_password(self, value):
         return validate_password(value)
@@ -292,7 +312,7 @@ class CompanyRegisterSerializer(serializers.Serializer):
             password=make_password(validated_data['password']),
             governorate=validated_data['governorate'],
             company_type=validated_data['company_type'],
-            website_url=validated_data.get('website_url') or None,
+            website_url=validated_data.get('website_url') or "",
             description=validated_data['description'],
         )
 
