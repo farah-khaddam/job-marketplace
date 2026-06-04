@@ -176,6 +176,44 @@
     "jobs": {
       "days_left": "يوم متبقي",
       "days_left_plural": "أيام متبقية"
+    },
+      "post_job": {
+      "title": "نشر وظيفة جديدة",
+      "subtitle": "أكمل البيانات التالية لنشر الوظيفة",
+      "back": "رجوع",
+      "cancel": "إلغاء",
+      "submit": "نشر الوظيفة",
+      "submitting": "جارٍ النشر...",
+      "active": "نشطة",
+      "inactive": "غير نشطة",
+      "preview_label": "معاينة الوظيفة",
+      "sections": {
+        "basic": "المعلومات الأساسية",
+        "details": "تفاصيل الوظيفة",
+        "publish": "إعدادات النشر"
+      },
+      "fields": {
+        "title": "مسمى الوظيفة",
+        "description": "وصف الوظيفة",
+        "specialization": "التخصص",
+        "city": "المدينة",
+        "job_type": "نوع الدوام",
+        "work_type": "طريقة العمل",
+        "status": "الحالة",
+        "is_active": "الوظيفة نشطة",
+        "views_count": "المشاهدات",
+        "expiration_date": "تاريخ الانتهاء",
+        "created_at": "تاريخ الإنشاء"
+      },
+      "placeholders": {
+        "title": "مثال: مطور Full Stack",
+        "description": "اكتب وصفاً واضحاً للوظيفة، المهام المطلوبة، والمهارات اللازمة...",
+        "select": "اختر..."
+      },
+      "errors": {
+        "required": "هذا الحقل مطلوب",
+        "expiration_past": "تاريخ الانتهاء يجب أن يكون بعد تاريخ اليوم"
+      }
     }
   }
 }
