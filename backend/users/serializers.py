@@ -66,13 +66,35 @@ def validate_phone_number_value(value):
 
 
 
-def validate_email_not_registered(value):
+def validate_email_not_registered(value, user_type='job_seeker'):
+    """
+    Validate email is not registered in any user type.
+    Enforces email uniqueness across JobSeeker, Company, and active EmailVerification records.
+    """
     value = value.lower().strip()
 
-    if CustomUser.objects.filter(email=value).exists():
+    # Check if email exists in CustomUser
+    if CustomUser.objects.filter(email__iexact=value).exists():
         raise serializers.ValidationError("email_already_registered")
 
-    if EmailVerification.objects.filter(email=value).exists():
+
+
+    if JobSeeker.objects.filter(email__iexact=value).exists():
+        raise serializers.ValidationError("email_already_registered")
+
+    if user_type == 'company':
+        if Company.objects.filter(email__iexact=value).exclude(approval_status='rejected').exists():
+            raise serializers.ValidationError("email_already_registered")
+    else:
+        if Company.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("email_already_registered")
+
+    existing_verification = EmailVerification.objects.filter(email__iexact=value, expires_at__gt=timezone.now()).first()
+    if existing_verification:
+        payload = existing_verification.payload or {}
+        user_type = getattr(existing_verification, 'user_type', None) or 'job_seeker'
+        if user_type == 'company' and payload.get('approval_status') == 'pending_admin_approval':
+            raise serializers.ValidationError("company_pending_approval")
         raise serializers.ValidationError("email_pending_verification")
 
     return value
@@ -129,12 +151,7 @@ class JobSeekerOTPRegisterSerializer(serializers.Serializer):
     
     def validate_email(self, value):
         value = validate_email_format(value)
-        value = value.lower().strip()
-
-        if (JobSeeker.objects.filter(email__iexact=value).exists() or
-            Company.objects.filter(email__iexact=value).exists()):
-            raise serializers.ValidationError("email_already_registered")
-        return value
+        return validate_email_not_registered(value)
 
 
     def validate_password(self, value):
@@ -276,7 +293,7 @@ class CompanyRegisterSerializer(serializers.Serializer):
     def validate_email(self, value):
      value = validate_email_format(value)
      value = value.lower().strip()
-     value=validate_email_not_registered(value)
+     value = validate_email_not_registered(value, user_type='company')
      return value
 
     def validate_password(self, value):

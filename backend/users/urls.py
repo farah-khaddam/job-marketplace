@@ -4,6 +4,7 @@ from .views import (
     get_choices,
     job_seeker_register,
     verify_otp,
+    company_verify_otp,
     job_seeker_login,
     company_register,
     company_login,
@@ -18,5 +19,6 @@ urlpatterns = [
     path("auth/job-seeker/login/", job_seeker_login, name="job_seeker_login"),
 
     path("auth/company/register/", company_register, name="company_register"),
+    path("auth/company/verify-otp/", company_verify_otp, name="company_verify_otp"),
     path("auth/company/login/", company_login, name="company_login"),
 ]

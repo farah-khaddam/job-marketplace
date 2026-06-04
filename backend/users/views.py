@@ -15,7 +15,12 @@ from .serializers import (
     CompanyRegisterSerializer, CompanyLoginSerializer, CompanyDetailSerializer,
     ChoicesSerializer
 )
-from .services.otp_service import send_job_seeker_otp, verify_job_seeker_otp
+from .services.otp_service import (
+    send_job_seeker_otp,
+    verify_job_seeker_otp,
+    verify_company_otp,
+    send_company_otp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +53,7 @@ def api_404_handler(request):
                 ],
                 'company_auth': [
                     'POST /api/auth/company/register/ - Register company',
+                    'POST /api/auth/company/verify-otp/ - Verify company OTP and complete registration',
                     'POST /api/auth/company/login/ - Login company'
                 ]
             }
@@ -120,6 +126,22 @@ def verify_otp(request):
 
 
 @api_view(['POST'])
+def company_verify_otp(request):
+    """Endpoint to verify company registration OTP only."""
+    serializer = VerifyOTPSerializer(data=request.data)
+    try:
+        serializer.is_valid(raise_exception=True)
+    except serializers.ValidationError as exc:
+        logger.debug('Company OTP verification validation errors: %s', exc.detail)
+        raise
+
+    email = serializer.validated_data['email'].lower()
+    otp = serializer.validated_data['otp']
+
+    return verify_company_otp(email, otp)
+
+
+@api_view(['POST'])
 def job_seeker_login(request):
     """
     Endpoint for Job Seeker Login.
@@ -187,7 +209,7 @@ def company_register(request):
         - password_confirm: str (must match password)
     
     Returns:
-        - Success (201): Created company details
+        - Success (200): Verification code sent to company email
         - Error (400): Validation errors
     """
     serializer = CompanyRegisterSerializer(data=request.data)
@@ -197,15 +219,11 @@ def company_register(request):
         logger.debug('Company registration validation errors: %s', exc.detail)
         print('Company registration validation errors:', exc.detail)
         raise
-    company = serializer.save()
-    detail_serializer = CompanyDetailSerializer(company)
-    return Response(
-        {
-            'message': 'Company account created successfully',
-            'data': detail_serializer.data
-        },
-        status=status.HTTP_201_CREATED
-    )
+
+    validated_data = serializer.validated_data
+    email = validated_data['email'].lower().strip()
+
+    return send_company_otp(email, validated_data)
 
 
 @api_view(['POST'])
@@ -237,6 +255,25 @@ def company_login(request):
         
         # Verify password
         if check_password(password, company.password):
+            
+            
+
+            if company.approval_status == 'pending':
+                return Response(
+        {
+            'error': 'Your company account is under review'
+        },
+        status=status.HTTP_403_FORBIDDEN
+    )
+
+            if company.approval_status == 'rejected':
+                return Response(
+        {
+            'error': 'Your company account has been rejected'
+        },
+        status=status.HTTP_403_FORBIDDEN
+    )
+
             detail_serializer = CompanyDetailSerializer(company)
             return Response(
                 {

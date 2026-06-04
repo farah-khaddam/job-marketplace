@@ -26,6 +26,15 @@ class EmailVerification(models.Model):
     payload = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
+    user_type = models.CharField(
+    max_length=20,
+    choices=[
+        ('job_seeker', 'Job Seeker'),
+        ('company', 'Company')
+    ],
+    default='job_seeker'
+    
+)
 
     class Meta:
         verbose_name = "Email Verification"
@@ -37,16 +46,34 @@ class EmailVerification(models.Model):
         return timezone.now() > self.expires_at
 
 
+
 GOVERNORATE_CHOICES = [
     ('damascus', 'Damascus'),
+    ('rural_damascus', 'Rural Damascus'),
+    ('aleppo', 'Aleppo'),
+    ('homs', 'Homs'),
+    ('hama', 'Hama'),
+    ('latakia', 'Latakia'),
+    ('tartus', 'Tartus'),
+    ('deir_ezzor', 'Deir Ezzor'),
+    ('raqqa', 'Raqqa'),
+    ('hasakah', 'Hasakah'),
+    ('daraa', 'Daraa'),
+    ('suwayda', 'Suwayda'),
+    ('quneitra', 'Quneitra'),
     ('idlib', 'Idlib'),
 ]
 
 COMPANY_TYPE_CHOICES = [
     ('programming', 'Programming'),
     ('civil', 'Civil'),
+    ('healthcare', 'Healthcare'),
+    ('education', 'Education'),
+    ('finance', 'Finance'),
+    ('marketing', 'Marketing'),
+    ('hospitality', 'Hospitality'),
+    ('other', 'Other'),
 ]
-
 
 
 
@@ -99,7 +126,23 @@ class Company(models.Model):
     Model for companies that post job opportunities.
     Stores company-specific information including location and business type.
     """
-    
+
+    approval_status = models.CharField(
+       max_length=20,
+       choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ],
+       default='pending'
+)
+
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Reason for rejection if the company registration was rejected"
+    )
+
     # Basic Information
     company_name = models.CharField(
         max_length=200,
@@ -136,7 +179,13 @@ class Company(models.Model):
         choices=COMPANY_TYPE_CHOICES,
         help_text="Type of company industry"
     )
-    
+    def approve(self):
+        self.approval_status = 'approved'
+        self.save()   
+    def reject(self):
+        self.approval_status = 'rejected'
+        self.save()  
+
     # Company Description
     website_url = models.URLField(
         max_length=255,

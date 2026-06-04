@@ -66,6 +66,54 @@ def send_otp_email(pending_registration, request=None):
         return False
 
 
+def send_company_approval_email(company):
+    """Notify company that their account has been approved."""
+    subject = 'Your company account has been approved'
+    message = (
+        f'Hello {company.company_name},\n\n'
+        'Your company account has been approved. You can now log in using your registered email address.\n\n'
+        'If you need assistance, please contact support.'
+    )
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[company.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"[send_company_approval_email] Failed to send email to {company.email}: {e}")
+
+
+def send_company_rejection_email(company):
+    """Notify company that their account registration was rejected."""
+    subject = 'Your company registration request was rejected'
+    if company.rejection_reason:
+        message = (
+            f'Hello {company.company_name},\n\n'
+            'We are sorry to inform you that your company registration request has been rejected.\n\n'
+            f'Reason: {company.rejection_reason}\n\n'
+            'If you have questions, please contact support for more information.'
+        )
+    else:
+        message = (
+            f'Hello {company.company_name},\n\n'
+            'We are sorry to inform you that your company registration request has been rejected.\n\n'
+            'If you have questions, please contact support for more information.'
+        )
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[company.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"[send_company_rejection_email] Failed to send email to {company.email}: {e}")
+
+
 # =========================
 # CUSTOM EXCEPTION HANDLER
 # =========================
