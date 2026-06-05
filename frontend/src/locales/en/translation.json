@@ -85,7 +85,21 @@
   "submit": "Submit Registration Request",
   "error_required": "Please fill in all required fields",
   "error_password_match": "Passwords do not match",
-  "error_password_length": "Password must be at least 8 characters"
+  "error_password_length": "Password must be at least 8 characters",
+  "company_pending_approval": "This company account is already under review and awaiting administrator approval.",
+  "otp_title": "Verify your email",
+  "otp_subtitle": "We sent a 6-digit code to",
+  "verify": "Verify",
+  "resend_code": "Resend Code",
+  "back": "Back",
+  "resend_code_in": "Resend code in {{seconds}}s",
+  "verifying": "Verifying...",
+"submitting": "Submitting request...",
+"error_network": "A network error occurred. Please try again.",
+"error_otp_invalid": "Invalid verification code",
+"success_title": "Request submitted successfully",
+"success_message": "Your company registration request has been submitted and is awaiting administrator approval.",
+"go_to_login": "Go to Login"
 },
 "country_code": {
   "select": "Select country code",

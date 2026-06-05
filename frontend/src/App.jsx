@@ -3,6 +3,7 @@ import Login from "./pages/Login"
 import Signup from "./pages/Signup"
 import SeekerSignup from "./pages/SeekerSignup"
 import CompanySignup from "./pages/CompanySignup"
+import OtpVerification from "./pages/OtpVerification"
 import Home from "./pages/Home"
 import PendingApproval from "./pages/PendingApproval"
 import CompanyDashboard from "./pages/company/CompanyDashboard"
@@ -16,7 +17,9 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/signup/seeker" element={<SeekerSignup />} />
       <Route path="/signup/company" element={<CompanySignup />} />
+      <Route path="/otp" element={<OtpVerification />} />
       <Route path="/pending" element={<PendingApproval />} />
+      <Route path="/company/pending" element={<PendingApproval />} />
       <Route path="/company/dashboard" element={<CompanyDashboard />} />
     </Routes>
   )

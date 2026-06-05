@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import EyeIcon from "../components/EyeIcon"
@@ -9,7 +9,12 @@ import { inputClass, labelClass } from "../utils/styles"
 
 const API_BASE = "http://127.0.0.1:8000"
 
-
+// ─── Steps (نفس pattern الـ JobSeeker) ────────────────────────────────────
+const STEPS = {
+  REGISTER: "register",
+  OTP: "otp",
+  SUCCESS: "success",
+}
 
 // ترجمة محلية للـ choices — لأن الـ API بيرجع إنجليزي بس
 const GOVERNORATE_AR = {
@@ -46,6 +51,9 @@ export default function CompanySignup() {
   const isAr = i18n.language === "ar"
   const navigate = useNavigate()
 
+  // ─── Step state ────────────────────────────────────────────────────────────
+  const [step, setStep] = useState(STEPS.REGISTER)
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -55,6 +63,12 @@ export default function CompanySignup() {
   const [companyTypes, setCompanyTypes] = useState([])
   const [choicesLoading, setChoicesLoading] = useState(true)
 
+  // ─── OTP state (نفس الـ JobSeeker) ────────────────────────────────────────
+  const [otpValues, setOtpValues] = useState(Array(6).fill(""))
+  const [otp, setOtp] = useState("")
+  const [cooldown, setCooldown] = useState(60)
+  const inputRefs = useRef([])
+
   // جلب الـ choices من الـ API عند تحميل الصفحة
   useEffect(() => {
     fetch(`${API_BASE}/api/choices/`)
@@ -63,9 +77,17 @@ export default function CompanySignup() {
         setGovernorates(data.governorates || [])
         setCompanyTypes(data.company_types || [])
       })
-      .catch(() => {}) // لو فشل نحتفظ بقوائم فاضية
+      .catch(() => {})
       .finally(() => setChoicesLoading(false))
   }, [])
+
+  // ─── Cooldown timer (نفس الـ JobSeeker) ───────────────────────────────────
+  useEffect(() => {
+    if (step !== STEPS.OTP || cooldown <= 0) return
+    const timer = setInterval(() => setCooldown((p) => p - 1), 1000)
+    return () => clearInterval(timer)
+  }, [cooldown, step])
+
   const [form, setForm] = useState({
     companyName: "",
     email: "",
@@ -85,10 +107,45 @@ export default function CompanySignup() {
     setError("")
   }
 
+  // ─── OTP handlers (نفس الـ JobSeeker بالضبط) ──────────────────────────────
+  const handleOtpChange = (val, idx) => {
+    const digit = val.replace(/\D/g, "").slice(-1)
+    const next = [...otpValues]
+    next[idx] = digit
+    setOtpValues(next)
+    setOtp(next.join(""))
+    setError("")
+    if (digit && idx < 5) inputRefs.current[idx + 1]?.focus()
+  }
+
+  const handleOtpKeyDown = (e, idx) => {
+    if (e.key === "Backspace") {
+      e.preventDefault()
+      const next = [...otpValues]
+      if (next[idx]) { next[idx] = "" }
+      else if (idx > 0) { next[idx - 1] = ""; inputRefs.current[idx - 1]?.focus() }
+      setOtpValues(next)
+      setOtp(next.join(""))
+    }
+  }
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault()
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    const next = Array(6).fill("")
+    paste.split("").forEach((ch, i) => { next[i] = ch })
+    setOtpValues(next)
+    setOtp(next.join(""))
+    inputRefs.current[Math.min(paste.length, 5)]?.focus()
+  }
+
+  const resolveApiError = (data, fallbackKey) =>
+    data?.error_code ? t(`company_signup.${data.error_code}`) : t(fallbackKey)
+
+  // ─── STEP 1: Submit registration ───────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Validation محلي
     if (form.password !== form.confirmPassword) {
       setFieldErrors({ confirmPassword: t("company_signup.error_password_match") })
       return
@@ -122,10 +179,10 @@ export default function CompanySignup() {
       const data = await res.json()
 
       if (res.ok) {
-        // بعد التسجيل الناجح ← صفحة "طلبك قيد المراجعة"
-        navigate("/pending")
+        // ← بدل ما نروح على /otp route خارجي، نبقى في نفس الصفحة
+        setCooldown(60)
+        setStep(STEPS.OTP)
       } else {
-        // نعرض أخطاء كل حقل من السيرفر
         const apiFieldMap = {
           company_name:     "companyName",
           phone_number:     "phone",
@@ -156,12 +213,158 @@ export default function CompanySignup() {
     }
   }
 
+  // ─── STEP 2: Verify OTP ────────────────────────────────────────────────────
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/company/verify-otp/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, otp }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(resolveApiError(data, "company_signup.error_otp_invalid")); return }
+      navigate("/company/pending")
+    } catch {
+      setError(t("company_signup.error_network"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ─── STEP 2: Resend OTP ────────────────────────────────────────────────────
+  const handleResendOtp = async () => {
+    if (cooldown > 0) return
+    setError("")
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/company/register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_name:     form.companyName,
+          email:            form.email,
+          phone_number:     `${form.phoneCountryCode}${form.phone}`,
+          governorate:      form.governorate,
+          company_type:     form.companyType,
+          website_url:      form.website || undefined,
+          description:      form.description,
+          password:         form.password,
+          password_confirm: form.confirmPassword,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(resolveApiError(data, "company_signup.error_network")); return }
+      setCooldown(60)
+    } catch {
+      setError(t("company_signup.error_network"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const langToggle = (
+    <button
+      onClick={() => i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar")}
+      className="absolute top-4 left-4 px-3 py-1 border rounded-lg text-sm"
+    >
+      {i18n.language === "ar" ? "EN" : "ع"}
+    </button>
+  )
+
   const pwInputClass = (dir) =>
     `w-full py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white transition ${dir === "rtl" ? "pr-4 pl-10" : "pl-4 pr-10"}`
 
+  // ─── SUCCESS ───────────────────────────────────────────────────────────────
+  if (step === STEPS.SUCCESS) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        {langToggle}
+        <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px] text-center" dir={textDir}>
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
+          <h2 className="text-2xl font-medium text-gray-900 mb-2">{t("company_signup.success_title")}</h2>
+          <p className="text-gray-500 text-sm mb-6">{t("company_signup.success_message")}</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+          >
+            {t("company_signup.go_to_login")}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── OTP ───────────────────────────────────────────────────────────────────
+  if (step === STEPS.OTP) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        {langToggle}
+        <div className="bg-white rounded-2xl shadow-xl p-10 w-[480px]" dir={textDir}>
+          <h2 className="text-2xl font-medium text-gray-900 mb-2">{t("company_signup.otp_title")}</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            {t("company_signup.otp_subtitle")}{" "}
+            <span className="font-medium text-gray-800">{form.email}</span>
+          </p>
+
+          <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
+            <div className="flex gap-2 justify-center" dir="ltr">
+              {otpValues.map((val, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => (inputRefs.current[idx] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={val}
+                  onChange={(e) => handleOtpChange(e.target.value, idx)}
+                  onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                  onPaste={handleOtpPaste}
+                  onFocus={(e) => e.target.select()}
+                  className="w-12 h-14 text-center text-xl font-medium border border-gray-200 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                />
+              ))}
+            </div>
+
+            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading || otp.length !== 6}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition"
+            >
+              {loading ? t("company_signup.verifying") : t("company_signup.verify")}
+            </button>
+          </form>
+
+          <div className="flex justify-between mt-4 text-sm">
+            <button
+              onClick={handleResendOtp}
+              disabled={loading || cooldown > 0}
+              className="text-blue-600 hover:underline disabled:opacity-50"
+            >
+              {cooldown > 0
+                ? t("company_signup.resend_code_in", { seconds: cooldown })
+                : t("company_signup.resend_code")}
+            </button>
+            <button
+              onClick={() => { setStep(STEPS.REGISTER); setError(""); setOtpValues(Array(6).fill("")); setOtp("") }}
+              className="text-gray-500 hover:underline"
+            >
+              {t("company_signup.back")}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── REGISTER ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-10">
-      <LangToggle />
+      {langToggle}
 
       <div className="bg-white rounded-2xl shadow-xl p-10 w-[520px]" dir={textDir}>
         <h2 className="text-2xl font-medium text-gray-900 mb-6 text-center">
@@ -209,7 +412,7 @@ export default function CompanySignup() {
               </div>
               <input
                 type="tel" required
-                placeholder="9X XXX XXXX"
+                placeholder="XX XXX XXXX"
                 value={form.phone}
                 onChange={(e) => handleChange("phone", sanitizePhoneNumber(e.target.value))}
                 className={`flex-1 ${inputClass} ${fieldErrors.phone ? "border-red-400" : ""}`}
@@ -322,10 +525,8 @@ export default function CompanySignup() {
             {fieldErrors.confirmPassword && <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>}
           </div>
 
-          {/* General Error */}
           {error && <p className="text-red-500 text-xs">{error}</p>}
 
-          {/* Submit */}
           <button
             type="submit" disabled={loading || choicesLoading}
             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1 flex items-center justify-center gap-2"
