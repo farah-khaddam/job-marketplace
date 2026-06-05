@@ -4,12 +4,12 @@ import { useState } from "react"
 import Navbar from "../components/Navbar"
 
 const CATEGORIES = [
-  { key: "tech", icon: "💻", ar: "تقنية المعلومات", en: "Information Technology" },
-  { key: "marketing", icon: "📢", ar: "تسويق وإعلام", en: "Marketing & Media" },
-  { key: "engineering", icon: "⚙️", ar: "هندسة", en: "Engineering" },
-  { key: "health", icon: "🏥", ar: "صحة", en: "Healthcare" },
-  { key: "education", icon: "📚", ar: "تعليم", en: "Education" },
-  { key: "finance", icon: "💰", ar: "مال وأعمال", en: "Finance & Business" },
+  { key: "tech",  ar: "تقنية المعلومات", en: "Information Technology" },
+  { key: "marketing", ar: "تسويق وإعلام", en: "Marketing & Media" },
+  { key: "engineering",  ar: "هندسة", en: "Engineering" },
+  { key: "health", ar: "صحة", en: "Healthcare" },
+  { key: "education", ar: "تعليم", en: "Education" },
+  { key: "finance", ar: "مال وأعمال", en: "Finance & Business" },
 ]
 
 const MOCK_JOBS = [

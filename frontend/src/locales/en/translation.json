@@ -191,6 +191,44 @@
     },
     "jobs": {
       "days_left": "days left"
+    },
+    "post_job": {
+      "title": "Post a New Job",
+      "subtitle": "Fill in the details below to publish your job listing",
+      "back": "Back",
+      "cancel": "Cancel",
+      "submit": "Publish Job",
+      "submitting": "Publishing...",
+      "active": "Active",
+      "inactive": "Inactive",
+      "preview_label": "Job Preview",
+      "sections": {
+        "basic": "Basic Information",
+        "details": "Job Details",
+        "publish": "Publish Settings"
+      },
+      "fields": {
+        "title": "Job Title",
+        "description": "Job Description",
+        "specialization": "Specialization",
+        "city": "City",
+        "job_type": "Job Type",
+        "work_type": "Work Type",
+        "status": "Status",
+        "is_active": "Job is active",
+        "views_count": "Views",
+        "expiration_date": "Expiration Date",
+        "created_at": "Created At"
+      },
+      "placeholders": {
+        "title": "e.g. Full Stack Developer",
+        "description": "Write a clear description of the role, responsibilities, and required skills...",
+        "select": "Select..."
+      },
+      "errors": {
+        "required": "This field is required",
+        "expiration_past": "Expiration date must be after today"
+      }
     }
   }
 }

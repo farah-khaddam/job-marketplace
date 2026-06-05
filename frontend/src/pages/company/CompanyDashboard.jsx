@@ -56,7 +56,7 @@ export default function CompanyDashboard() {
             </p>
           </div>
           <button
-            onClick={() => navigate("/company/jobs/post")}
+            onClick={() => navigate("/company/dashboard/postJob")}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#16304f] text-white text-sm font-medium rounded-xl transition"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

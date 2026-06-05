@@ -7,9 +7,19 @@ import OtpVerification from "./pages/OtpVerification"
 import Home from "./pages/Home"
 import PendingApproval from "./pages/PendingApproval"
 import CompanyDashboard from "./pages/company/CompanyDashboard"
+import PostJob from "./pages/company/PostJob"
+import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import './App.css'
 
 function App() {
+    const { i18n } = useTranslation()
+
+  useEffect(() => {
+    document.documentElement.dir =
+      i18n.language === "ar" ? "rtl" : "ltr"
+  }, [i18n.language])
+  
   return (
    <Routes>
       <Route path="/" element={<Home />} />
@@ -21,6 +31,7 @@ function App() {
       <Route path="/pending" element={<PendingApproval />} />
       <Route path="/company/pending" element={<PendingApproval />} />
       <Route path="/company/dashboard" element={<CompanyDashboard />} />
+      <Route path="/company/dashboard/postJob" element={<PostJob />} />
     </Routes>
   )
 }
