@@ -302,5 +302,16 @@
       },
       "completion": "Profile Complete"
     }
+  },
+  "jobs": {
+    "title": "Explore Available Jobs",
+    "subtitle": "Thousands of opportunities await you in the Syrian market",
+    "search_placeholder": "Search for a job, company, or skill...",
+    "search_btn": "Search",
+    "clear_filters": "Clear Filters",
+    "results_count": "jobs found",
+    "results_for": "results for",
+    "no_results": "No results found",
+    "no_results_sub": "Try changing your filters or search term"
   }
 }

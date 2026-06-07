@@ -51,7 +51,8 @@ export default function Home() {
       <Navbar />
 
       {/* ===== Hero ===== */}
-      <div className="bg-[#1e3a5f] px-10 py-16 text-center relative overflow-hidden">
+      <div className="bg-[#1e3a5f] px-10 py-16 text-center relative overflow-hidden"
+       style={{ background:"linear-gradient(135deg,#0f2544 0%,#1e3a5f 60%,#162d4a 100%)" }}>
         <div className="absolute w-72 h-72 rounded-full border border-white/5 -top-20 -right-20" />
         <div className="absolute w-52 h-52 rounded-full border border-white/5 -bottom-16 -left-16" />
 
