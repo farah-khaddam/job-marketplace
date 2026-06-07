@@ -8,6 +8,7 @@ import Home from "./pages/Home"
 import PendingApproval from "./pages/PendingApproval"
 import CompanyDashboard from "./pages/company/CompanyDashboard"
 import PostJob from "./pages/company/PostJob"
+import SeekerProfile from "./pages/seeker/SeekerProfile"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import './App.css'
@@ -32,6 +33,7 @@ function App() {
       <Route path="/company/pending" element={<PendingApproval />} />
       <Route path="/company/dashboard" element={<CompanyDashboard />} />
       <Route path="/company/dashboard/postJob" element={<PostJob />} />
+      <Route path="/seeker/profile" element={<SeekerProfile />} />
     </Routes>
   )
 }

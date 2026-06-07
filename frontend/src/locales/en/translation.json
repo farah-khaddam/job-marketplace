@@ -230,5 +230,77 @@
         "expiration_past": "Expiration date must be after today"
       }
     }
+  },
+  "seeker": {
+    "profile": {
+      "title": "My Profile",
+      "back": "Back",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "saved": "Saved",
+      "cancel": "Cancel",
+      "save_entry": "Save",
+      "add": "Add",
+      "sections": {
+        "personal": "Personal Information",
+        "cv": "Resume / CV",
+        "skills": "Skills",
+        "experience": "Experience",
+        "education": "Education"
+      },
+      "fields": {
+        "full_name": "Full Name",
+        "email": "Email Address",
+        "phone": "Phone Number",
+        "governorate": "Governorate",
+        "bio": "Bio"
+      },
+      "placeholders": {
+        "select": "Select...",
+        "bio": "Write a short summary about yourself and your experience..."
+      },
+      "cv": {
+        "drag": "Drag your PDF here or click to upload",
+        "hint": "PDF only · Max 5 MB",
+        "existing": "Current Resume",
+        "view": "View",
+        "remove": "Remove file",
+        "error_type": "Please upload a PDF file only",
+        "error_size": "File size exceeds 5 MB"
+      },
+      "skills": {
+        "placeholder": "Add a skill and press Enter",
+        "add": "Add",
+        "empty": "No skills added yet",
+        "label": "skills"
+      },
+      "experience": {
+        "empty": "No experience added yet",
+        "present": "Present",
+        "add": "Add Experience",
+        "edit": "Edit Experience",
+        "fields": {
+          "title": "Job Title",
+          "company": "Company",
+          "from": "From",
+          "to": "To",
+          "current": "I currently work here"
+        }
+      },
+      "education": {
+        "empty": "No education added yet",
+        "add": "Add Education",
+        "edit": "Edit Education",
+        "fields": {
+          "degree": "Degree",
+          "institution": "University / Institution",
+          "year": "Graduation Year"
+        }
+      },
+      "errors": {
+        "required": "This field is required"
+      },
+      "completion": "Profile Complete"
+    }
   }
 }
