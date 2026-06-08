@@ -63,8 +63,8 @@
   "otp_expired": "انتهت صلاحية رمز التحقق",
   "email_exists": "البريد الإلكتروني مستخدم مسبقاً",
   "resend_code_in": "إعادة الإرسال بعد {{seconds}} ثانية",
-  "seeker_signup.email_pending_verification": "البريد الإلكتروني قيد التحقق",
-  "seeker_signup.error_network": "حدث خطأ في الشبكة. يرجى المحاولة مرة أخرى."
+  "email_pending_verification": "البريد الإلكتروني قيد التحقق",
+  "error_network": "حدث خطأ في الشبكة. يرجى المحاولة مرة أخرى."
 
 },
 "company_signup": {
