@@ -91,6 +91,9 @@ def send_job_seeker_otp(email, validated_data):
 
     if existing_verification:
         payload = existing_verification.payload or {}
+        logger.debug(
+            f"[send_job_seeker_otp] EmailVerification id={getattr(existing_verification, 'id', None)} payload_meta_before={payload.get('_otp_metadata')}"
+        )
         user_type = getattr(existing_verification, 'user_type', None) or 'job_seeker'
         if user_type == 'company' and payload.get('approval_status') == 'pending_admin_approval':
             return Response(
@@ -111,9 +114,15 @@ def send_job_seeker_otp(email, validated_data):
 
     if existing_verification:
         payload = existing_verification.payload or {}
+        logger.debug(
+            f"[send_job_seeker_otp] EmailVerification id={getattr(existing_verification, 'id', None)} payload_meta_before={payload.get('_otp_metadata')}"
+        )
 
         # Ensure metadata always exists
         payload.setdefault('_otp_metadata', {})
+        logger.debug(
+            f"[send_job_seeker_otp] payload_meta_before_update={payload.get('_otp_metadata')}"
+        )
 
         meta = payload.get('_otp_metadata', {})
         first_request_at = meta.get('first_request_at')
@@ -151,6 +160,9 @@ def send_job_seeker_otp(email, validated_data):
         # Update last_request_at to track cooldown between OTP requests
         rate_limit_meta['last_request_at'] = now.timestamp()
         payload['_otp_metadata'] = rate_limit_meta
+        logger.debug(
+            f"[send_job_seeker_otp] payload_meta_after_update={payload.get('_otp_metadata')}"
+        )
 
     else:
         payload = {
@@ -199,6 +211,10 @@ def send_company_otp(email, validated_data):
         existing_verification = None
 
     if existing_verification:
+        payload = existing_verification.payload or {}
+        logger.debug(
+            f"[send_company_otp] EmailVerification id={getattr(existing_verification, 'id', None)} payload_meta_before={payload.get('_otp_metadata')}"
+        )
         user_type = getattr(existing_verification, 'user_type', None) or 'job_seeker'
         payload = existing_verification.payload or {}
         if user_type == 'company' and payload.get('approval_status') == 'pending_admin_approval':
@@ -224,6 +240,9 @@ def send_company_otp(email, validated_data):
 
         # Ensure metadata always exists
         payload.setdefault('_otp_metadata', {})
+        logger.debug(
+            f"[send_company_otp] payload_meta_before_update={payload.get('_otp_metadata')}"
+        )
 
         meta = payload.get('_otp_metadata', {})
         first_request_at = meta.get('first_request_at')
@@ -248,6 +267,9 @@ def send_company_otp(email, validated_data):
 
         rate_limit_meta['last_request_at'] = now.timestamp()
         payload['_otp_metadata'] = rate_limit_meta
+        logger.debug(
+            f"[send_company_otp] payload_meta_after_update={payload.get('_otp_metadata')}"
+        )
 
     else:
         payload = {
