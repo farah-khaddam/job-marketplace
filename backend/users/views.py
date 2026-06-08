@@ -1,10 +1,11 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.translation import get_language
-from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.hashers import check_password
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -13,6 +14,7 @@ from .serializers import (
     JobSeekerOTPRegisterSerializer, VerifyOTPSerializer,
     JobSeekerLoginSerializer, JobSeekerDetailSerializer,
     CompanyRegisterSerializer, CompanyLoginSerializer, CompanyDetailSerializer,
+    GoogleLoginSerializer, GoogleLoginResponseSerializer,
     ChoicesSerializer
 )
 from .services.otp_service import (
@@ -21,6 +23,8 @@ from .services.otp_service import (
     verify_company_otp,
     send_company_otp,
 )
+import jwt
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -141,36 +145,21 @@ def company_verify_otp(request):
     return verify_company_otp(email, otp)
 
 
+
+
+
 @api_view(['POST'])
-def job_seeker_login(request):
-    """
-    Endpoint for Job Seeker Login.
-    
-    Required fields:
-        - email: str
-        - password: str
-    
-    Returns:
-        - Success (200): Job seeker details and session info
-        - Error (400): Invalid credentials
-        - Error (404): User not found
-    """
-    serializer = JobSeekerLoginSerializer(data=request.data)
-    try:
-        serializer.is_valid(raise_exception=True)
-    except serializers.ValidationError as exc:
-        logger.debug('Job seeker login validation errors: %s', exc.detail)
-        print('Job seeker login validation errors:', exc.detail)
-        raise
-    email = serializer.validated_data['email']
-    password = serializer.validated_data['password']
-    
-    try:
-        job_seeker = JobSeeker.objects.get(email=email)
-        
-        # Verify password
+def login_user(request):
+    email = request.data.get('email', '').lower().strip()
+    password = request.data.get('password', '')
+
+    # البحث أولاً في JobSeeker
+    job_seeker = JobSeeker.objects.filter(email__iexact=email).first()
+
+    if job_seeker:
         if check_password(password, job_seeker.password):
             detail_serializer = JobSeekerDetailSerializer(job_seeker)
+
             return Response(
                 {
                     'message': 'Login successful',
@@ -179,16 +168,50 @@ def job_seeker_login(request):
                 },
                 status=status.HTTP_200_OK
             )
-        else:
+
+        return Response(
+            {'error': 'Invalid email or password'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # البحث في Company
+    company = Company.objects.filter(email__iexact=email).first()
+
+    if company:
+
+        if not check_password(password, company.password):
             return Response(
                 {'error': 'Invalid email or password'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    except JobSeeker.DoesNotExist:
+
+        if company.approval_status == 'pending':
+            return Response(
+                {'error': 'Your company account is under review'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if company.approval_status == 'rejected':
+            return Response(
+                {'error': 'Your company account has been rejected'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        detail_serializer = CompanyDetailSerializer(company)
+
         return Response(
-            {'error': 'Job seeker account not found'},
-            status=status.HTTP_404_NOT_FOUND
+            {
+                'message': 'Login successful',
+                'user_type': 'company',
+                'data': detail_serializer.data
+            },
+            status=status.HTTP_200_OK
         )
+
+    return Response(
+        {'error': 'Account not found'},
+        status=status.HTTP_404_NOT_FOUND
+    )
 
 
 
@@ -226,70 +249,115 @@ def company_register(request):
     return send_company_otp(email, validated_data)
 
 
+
+def get_google_client_id():
+    return getattr(settings, 'GOOGLE_CLIENT_ID', None) or settings.SOCIALACCOUNT_PROVIDERS.get('google', {}).get('CLIENT_ID')
+
+
+def verify_google_id_token(id_token):
+    if not id_token or not isinstance(id_token, str):
+        raise ValueError('Invalid Google ID token.')
+
+    try:
+        response = requests.get(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={'id_token': id_token},
+            timeout=5,
+        )
+        response.raise_for_status()
+        token_info = response.json()
+    except requests.RequestException as exc:
+        logger.warning('Google token verification failed: %s', exc)
+        raise ValueError('Invalid Google token.')
+
+    if not token_info.get('email'):
+        raise ValueError('Google token did not contain an email address.')
+
+    if token_info.get('email_verified') not in ('true', True):
+        raise ValueError('Google account email is not verified.')
+
+    client_id = get_google_client_id()
+    if client_id and token_info.get('aud') != client_id:
+        raise ValueError('Google token audience does not match the configured client ID.')
+
+    return token_info
+
+
+def generate_jwt_tokens(email, user_type, user_id):
+    now = datetime.utcnow()
+    access_payload = {
+        'email': email,
+        'user_type': user_type,
+        'user_id': user_id,
+        'token_type': 'access',
+        'iat': int(now.timestamp()),
+        'exp': int((now + timedelta(minutes=15)).timestamp()),
+    }
+    refresh_payload = {
+        'email': email,
+        'user_type': user_type,
+        'user_id': user_id,
+        'token_type': 'refresh',
+        'iat': int(now.timestamp()),
+        'exp': int((now + timedelta(days=7)).timestamp()),
+    }
+
+    access_token = jwt.encode(access_payload, settings.SECRET_KEY, algorithm='HS256')
+    refresh_token = jwt.encode(refresh_payload, settings.SECRET_KEY, algorithm='HS256')
+
+    if isinstance(access_token, bytes):
+        access_token = access_token.decode('utf-8')
+    if isinstance(refresh_token, bytes):
+        refresh_token = refresh_token.decode('utf-8')
+
+    return access_token, refresh_token
+
+
 @api_view(['POST'])
-def company_login(request):
-    """
-    Endpoint for Company Login.
-    
-    Required fields:
-        - email: str
-        - password: str
-    
-    Returns:
-        - Success (200): Company details and session info
-        - Error (400): Invalid credentials
-        - Error (404): Company not found
-    """
-    serializer = CompanyLoginSerializer(data=request.data)
+def google_login(request):
+    """Endpoint for Google login using an ID token without creating new user accounts."""
+    serializer = GoogleLoginSerializer(data=request.data)
     try:
         serializer.is_valid(raise_exception=True)
     except serializers.ValidationError as exc:
-        logger.debug('Company login validation errors: %s', exc.detail)
-        print('Company login validation errors:', exc.detail)
+        logger.debug('Google login validation errors: %s', exc.detail)
         raise
-    email = serializer.validated_data['email']
-    password = serializer.validated_data['password']
-    
+
     try:
-        company = Company.objects.get(email=email)
-        
-        # Verify password
-        if check_password(password, company.password):
-            
-            
-
-            if company.approval_status == 'pending':
-                return Response(
-        {
-            'error': 'Your company account is under review'
-        },
-        status=status.HTTP_403_FORBIDDEN
-    )
-
-            if company.approval_status == 'rejected':
-                return Response(
-        {
-            'error': 'Your company account has been rejected'
-        },
-        status=status.HTTP_403_FORBIDDEN
-    )
-
-            detail_serializer = CompanyDetailSerializer(company)
-            return Response(
-                {
-                    'message': 'Login successful',
-                    'user_type': 'company',
-                    'data': detail_serializer.data
-                },
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(
-                {'error': 'Invalid email or password'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    except Company.DoesNotExist:
+        token_info = verify_google_id_token(serializer.validated_data['id_token'])
+    except ValueError as exc:
         return Response(
-            {'error': 'Company account not found'},
-            status=status.HTTP_404_NOT_FOUND
+            {'error': str(exc)},
+            status=status.HTTP_400_BAD_REQUEST
         )
+
+    email = token_info['email'].lower().strip()
+    job_seeker = JobSeeker.objects.filter(email__iexact=email).first()
+    company = None if job_seeker else Company.objects.filter(email__iexact=email).first()
+    user = job_seeker or company
+
+    if not user:
+        return Response(
+            {
+                'error': 'This Google account is not registered on this platform. Please create an account first.'
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user_type = 'job_seeker' if job_seeker else 'company'
+    access_token, refresh_token = generate_jwt_tokens(
+        email=user.email,
+        user_type=user_type,
+        user_id=user.id
+    )
+
+    response_data = {
+        'is_new_user': False,
+        'is_profile_completed': True,
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'user': user,
+    }
+
+    response_serializer = GoogleLoginResponseSerializer(response_data)
+    return Response(response_serializer.data, status=status.HTTP_200_OK)

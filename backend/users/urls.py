@@ -5,9 +5,9 @@ from .views import (
     job_seeker_register,
     verify_otp,
     company_verify_otp,
-    job_seeker_login,
     company_register,
-    company_login,
+    google_login,
+    login_user
 )
 
 urlpatterns = [
@@ -16,9 +16,10 @@ urlpatterns = [
 
     path("auth/job-seeker/register/", job_seeker_register, name="job_seeker_register"),
     path("auth/job-seeker/verify-otp/", verify_otp, name="verify_otp"),
-    path("auth/job-seeker/login/", job_seeker_login, name="job_seeker_login"),
+   
+    path("auth/login/", login_user, name="login_user"),
 
     path("auth/company/register/", company_register, name="company_register"),
     path("auth/company/verify-otp/", company_verify_otp, name="company_verify_otp"),
-    path("auth/company/login/", company_login, name="company_login"),
+    path("auth/google/login/", google_login, name="google_login"),
 ]

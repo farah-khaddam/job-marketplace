@@ -343,6 +343,15 @@ class CompanyLoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 
+class GoogleLoginSerializer(serializers.Serializer):
+    id_token = serializers.CharField(write_only=True)
+
+    def validate_id_token(self, value):
+        if not value or not isinstance(value, str):
+            raise serializers.ValidationError("Google ID token is required.")
+        return value.strip()
+
+
 # =========================
 # COMPANY DETAIL
 # =========================
