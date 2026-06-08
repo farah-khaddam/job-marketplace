@@ -2,10 +2,15 @@ import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.translation import get_language
-from django.contrib.auth.hashers import check_password
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.auth import get_user_model
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -15,7 +20,8 @@ from .serializers import (
     JobSeekerLoginSerializer, JobSeekerDetailSerializer,
     CompanyRegisterSerializer, CompanyLoginSerializer, CompanyDetailSerializer,
     GoogleLoginSerializer, GoogleLoginResponseSerializer,
-    ChoicesSerializer
+    ChoicesSerializer, PasswordResetRequestSerializer,
+    PasswordResetTokenSerializer, PasswordResetConfirmSerializer
 )
 from .services.otp_service import (
     send_job_seeker_otp,
@@ -27,6 +33,16 @@ import jwt
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
+    def _make_hash_value(self, user, timestamp):
+        updated_at = getattr(user, 'updated_at', None) or ''
+        last_login = getattr(user, 'last_login', None) or ''
+        return str(user.pk) + str(user.password) + str(updated_at) + str(last_login) + str(timestamp)
+
+
+custom_token_generator = CustomPasswordResetTokenGenerator()
 
 
 def home(request):
@@ -80,6 +96,147 @@ def get_choices(request):
     serializer = ChoicesSerializer({})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+def get_user_by_email(email):
+    email = email.strip().lower()
+    user = JobSeeker.objects.filter(email__iexact=email).first()
+    if user:
+        return 'job_seeker', user
+
+    user = Company.objects.filter(email__iexact=email).first()
+    if user:
+        return 'company', user
+
+    custom_user = get_user_model().objects.filter(email__iexact=email).first()
+    if custom_user:
+        return 'customuser', custom_user
+
+    return None, None
+
+
+def get_user_from_uid(uidb64):
+    try:
+        decoded = force_str(urlsafe_base64_decode(uidb64))
+        user_type, raw_pk = decoded.split(':', 1)
+    except Exception:
+        return None, None
+
+    model_map = {
+        'job_seeker': JobSeeker,
+        'company': Company,
+        'customuser': get_user_model(),
+    }
+    model = model_map.get(user_type)
+    if not model:
+        return None, None
+
+    try:
+        return user_type, model.objects.get(pk=raw_pk)
+    except model.DoesNotExist:
+        return None, None
+
+
+def build_password_reset_link(user_type, user, token):
+    uid = urlsafe_base64_encode(force_bytes(f"{user_type}:{user.pk}"))
+    frontend_url = getattr(settings,'FRONTEND_URL','http://localhost:3000').rstrip('/')
+    return f"{frontend_url}/reset-password/{uid}/{token}"
+
+
+def send_password_reset_email(user_type, user, token):
+    reset_link = build_password_reset_link(user_type, user, token)
+    subject = 'Reset your password'
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@jobportal.local')
+    text_content = (
+        'We received a request to reset your password.\n\n'
+        f'Click the link below to reset your password:\n{reset_link}\n\n'
+        'If you did not request a password reset, you can ignore this message.\n'
+        'For security reasons, this link expires after 24 hours.'
+    )
+    html_content = (
+        f'<p>We received a request to reset your password.</p>'
+        f'<p><a href="{reset_link}">Reset your password</a></p>'
+        '<p>If you did not request a password reset, you can ignore this message.</p>'
+        '<p>For security reasons, this link expires after 24 hours.</p>'
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=text_content,
+            from_email=from_email,
+            recipient_list=[user.email],
+            fail_silently=False,
+            html_message=html_content,
+        )
+    except Exception as exc:
+        logger.error(f"[send_password_reset_email] Unable to send reset email to {user.email}: {exc}")
+
+
+@api_view(['POST'])
+def password_reset_request(request):
+    serializer = PasswordResetRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data['email']
+    user_type, user = get_user_by_email(email)
+
+    if user:
+        token = custom_token_generator.make_token(user)
+        send_password_reset_email(user_type, user, token)
+
+    return Response(
+        {
+            'message': 'If an account with that email exists, a password reset link has been sent.'
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+def password_reset_validate(request):
+    serializer = PasswordResetTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user_type, user = get_user_from_uid(serializer.validated_data['uidb64'])
+
+    if user and custom_token_generator.check_token(user, serializer.validated_data['token']):
+        return Response({'valid': True}, status=status.HTTP_200_OK)
+
+    return Response(
+        {
+            'valid': False,
+            'error': 'invalid_or_expired_token',
+            'message': 'This reset link is invalid or has expired.'
+        },
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+@api_view(['POST'])
+def password_reset_confirm(request):
+    serializer = PasswordResetConfirmSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user_type, user = get_user_from_uid(serializer.validated_data['uidb64'])
+
+    if not user or not custom_token_generator.check_token(user, serializer.validated_data['token']):
+        return Response(
+            {
+                'error': 'invalid_or_expired_token',
+                'message': 'This reset link is invalid or has expired.'
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    new_password = serializer.validated_data['new_password']
+    if user_type == 'customuser':
+        user.set_password(new_password)
+    else:
+        user.password = make_password(new_password)
+    user.save()
+
+    return Response(
+        {'message': 'Password has been reset successfully.'},
+        status=status.HTTP_200_OK
+    )
 
 
 @api_view(['POST'])

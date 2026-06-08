@@ -7,7 +7,10 @@ from .views import (
     company_verify_otp,
     company_register,
     google_login,
-    login_user
+    login_user,
+    password_reset_request,
+    password_reset_validate,
+    password_reset_confirm,
 )
 
 urlpatterns = [
@@ -22,4 +25,8 @@ urlpatterns = [
     path("auth/company/register/", company_register, name="company_register"),
     path("auth/company/verify-otp/", company_verify_otp, name="company_verify_otp"),
     path("auth/google/login/", google_login, name="google_login"),
+
+    path("auth/password/reset/", password_reset_request, name="password_reset_request"),
+    path("auth/password/reset/validate/", password_reset_validate, name="password_reset_validate"),
+    path("auth/password/reset/confirm/", password_reset_confirm, name="password_reset_confirm"),
 ]

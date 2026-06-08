@@ -129,7 +129,9 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 )
-PASSWORD_RESET_CONFIRM_URL = 'api/auth/password/reset/confirm/{uid}/{token}/'
+PASSWORD_RESET_CONFIRM_URL = 'reset-password/{uid}/{token}/'
+PASSWORD_RESET_TIMEOUT = 86400
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
@@ -145,7 +147,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jobportalteam2026@gmail.com'  
-EMAIL_HOST_PASSWORD = 'plgf wcwd mwwy vker'
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 SITE_ID = 1
 REST_AUTH = {

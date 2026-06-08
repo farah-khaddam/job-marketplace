@@ -8,6 +8,8 @@ from datetime import timedelta
 from .utils import send_otp_email
 from dj_rest_auth.serializers import PasswordResetSerializer
 import re
+import dns.resolver
+import dns.exception
 
 CustomUser = get_user_model()
 
@@ -16,51 +18,63 @@ CustomUser = get_user_model()
 # VALIDATORS
 # =========================
 
+def validate_password(value):
+    if not value or not str(value).strip():
+        raise serializers.ValidationError("password_required")
+    if len(value) < 8:
+        raise serializers.ValidationError("password_too_short")
+    return value
+
 def validate_email_format(value):
-    if not value:
-        raise serializers.ValidationError({
-            "email": "Email is required. Example: user@example.com"
-        })
+    if not value or not value.strip():
+        raise serializers.ValidationError("email_required")
 
     value = value.strip().lower()
 
     email_regex = r'^[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$'
-
     if not re.match(email_regex, value):
-        raise serializers.ValidationError({
-            "email": "Invalid email format. Example: user@example.com"
-        })
+        raise serializers.ValidationError("email_invalid_format")
 
     domain = value.split('@')[1]
     parts = domain.split('.')
 
-    # لازم يكون فيه على الأقل example.com
     if len(parts) < 2:
-        raise serializers.ValidationError({
-            "email": "Domain must be like example.com"
-        })
+        raise serializers.ValidationError("email_invalid_domain")
 
     tld = parts[-1]
-
     if len(tld) < 2:
-        raise serializers.ValidationError({
-            "email": "Invalid domain extension. Example: user@example.com"
-        })
+        raise serializers.ValidationError("email_invalid_tld")
+
+    try:
+        dns.resolver.resolve(domain, 'MX')
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+        raise serializers.ValidationError("email_domain_not_found")
+    except dns.exception.Timeout:
+        raise serializers.ValidationError("email_domain_check_timeout")
+    except Exception:
+        raise serializers.ValidationError("email_domain_unreachable")
 
     return value
 
 def validate_phone_number_value(value):
-    if not value:
-        raise serializers.ValidationError({
-            "phone_number": "Phone number is required. Example: +XXXXXXXXXXX"
-        })
+    if not value or not value.strip():
+        raise serializers.ValidationError("phone_number_required")
 
     value = str(value).strip()
 
-    pattern = r'^\+\d{10,12}$'
+    if not value.startswith('+'):
+        raise serializers.ValidationError("phone_number_missing_country_code (e.g. +201234567890)")
 
-    if not re.fullmatch(pattern, value):
-        raise serializers.ValidationError("Phone number must include country code with 9–10 digits. Example: +XXXXXXXXXXX")
+    digits_only = value[1:]  
+
+    if not digits_only.isdigit():
+        raise serializers.ValidationError("phone_number_digits_only")
+
+    if len(digits_only) < 10:
+        raise serializers.ValidationError("phone_number_too_short")
+
+    if len(digits_only) > 12:
+        raise serializers.ValidationError("phone_number_too_long")
 
     return value
 
@@ -100,22 +114,41 @@ def validate_email_not_registered(value, user_type='job_seeker'):
     return value
 
 
-def validate_password(value):
-    if not value:
-        raise serializers.ValidationError("password_required")
-
-    if len(value) < 8:
-        raise serializers.ValidationError("password_too_short")
-
-    return value
-
-
 # =========================
 # PASSWORD RESET (required by settings.py)
 # =========================
 
 class CustomPasswordResetSerializer(PasswordResetSerializer):
     pass
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return validate_email_format(value)
+
+
+class PasswordResetTokenSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField()
+    token = serializers.CharField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        return validate_password(value)
+
+    def validate(self, data):
+        if data.get('new_password') != data.get('confirm_password'):
+            raise serializers.ValidationError({
+                'confirm_password': 'passwords_not_match'
+            })
+        return data
 
 
 # =========================
@@ -148,37 +181,41 @@ class JobSeekerOTPRegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=150)
     phone_number = serializers.CharField()
 
-    
     def validate_email(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("email_required")
         value = validate_email_format(value)
         return validate_email_not_registered(value)
 
-
     def validate_password(self, value):
-        return validate_password(value)
+       return validate_password(value)
+    
 
     def validate_phone_number(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("phone_number_required")
         return validate_phone_number_value(value)
 
     def validate_full_name(self, value):
-      value = value.strip()
-
-      if not value:
-        raise serializers.ValidationError("full_name_required")
-      if not re.fullmatch(r'[A-Za-z\u0600-\u06FF\s]+', value):
-        raise serializers.ValidationError("Full name must contain letters and spaces only")
-      if value.replace(" ", "") == "":
-        raise serializers.ValidationError("full_name_required")
-      return value
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("full_name_required")
+        if not re.fullmatch(r'[A-Za-z\u0600-\u06FF\s]+', value):
+            raise serializers.ValidationError("full_name_letters_only")
+        if value.replace(" ", "") == "":
+            raise serializers.ValidationError("full_name_required")
+        return value
 
     def validate(self, data):
+        if not data.get('password_confirm'):
+            raise serializers.ValidationError({
+                'password_confirm': 'password_confirm_required'
+            })
         if data.get('password') != data.get('password_confirm'):
             raise serializers.ValidationError({
                 'password_confirm': 'passwords_not_match'
             })
         return data
-
-
 # =========================
 # VERIFY OTP
 # =========================
@@ -208,22 +245,40 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
 
     def validate_email(self, value):
-     value = validate_email_format(value)
-     value = value.lower().strip()
-
-     value = validate_email_not_registered(value)
-     return value
+        if not value or not value.strip():
+            raise serializers.ValidationError("email_required")
+        value = validate_email_format(value)
+        value = value.lower().strip()
+        return validate_email_not_registered(value)
 
     def validate_password(self, value):
         return validate_password(value)
 
     def validate_phone_number(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("phone_number_required")
         return validate_phone_number_value(value)
 
     def validate_full_name(self, value):
-        if not value or not value.strip():
+        value = value.strip()
+        if not value:
             raise serializers.ValidationError("full_name_required")
-        return value.strip()
+        if not re.fullmatch(r'[A-Za-z\u0600-\u06FF\s]+', value):
+            raise serializers.ValidationError("full_name_letters_only")
+        if value.replace(" ", "") == "":
+            raise serializers.ValidationError("full_name_required")
+        return value
+
+    def validate(self, data):
+        if not data.get('password_confirm'):
+            raise serializers.ValidationError({
+                'password_confirm': 'password_confirm_required'
+            })
+        if data.get('password') != data.get('password_confirm'):
+            raise serializers.ValidationError({
+                'password_confirm': 'passwords_not_match'
+            })
+        return data
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
@@ -291,29 +346,72 @@ class CompanyRegisterSerializer(serializers.Serializer):
     description = serializers.CharField()
 
     def validate_email(self, value):
-     value = validate_email_format(value)
-     value = value.lower().strip()
-     value = validate_email_not_registered(value, user_type='company')
-     return value
+        if not value or not value.strip():
+            raise serializers.ValidationError("email_required")
+        value = validate_email_format(value)
+        value = value.lower().strip()
+        value = validate_email_not_registered(value, user_type='company')
+        return value
 
     def validate_password(self, value):
-        return validate_password(value)
-
+       return validate_password(value)
+    
+    
     def validate_phone_number(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("phone_number_required")
         return validate_phone_number_value(value)
 
     def validate_company_name(self, value):
-        if not value or not value.strip():
+        value = value.strip()
+        if not value:
             raise serializers.ValidationError("company_name_required")
-        return value.strip()
+        if not re.fullmatch(r'[A-Za-z\u0600-\u06FF\s]+', value):
+            raise serializers.ValidationError("company_name_letters_only")
+        return value
 
     def validate_description(self, value):
-        if not value or not value.strip():
+        value = value.strip()
+        if not value:
             raise serializers.ValidationError("company_description_required")
-        return value.strip()
+        if len(value) < 20:
+            raise serializers.ValidationError("company_description_too_short")
+        return value
+
+    def validate_governorate(self, value):
+        if not value:
+            raise serializers.ValidationError("governorate_required")
+        valid_values = [v for v, _ in GOVERNORATE_CHOICES]
+        if value not in valid_values:
+            raise serializers.ValidationError("governorate_invalid")
+        return value
+
+    def validate_company_type(self, value):
+        if not value:
+            raise serializers.ValidationError("company_type_required")
+        valid_values = [v for v, _ in COMPANY_TYPE_CHOICES]
+        if value not in valid_values:
+            raise serializers.ValidationError("company_type_invalid")
+        return value
+
+    def validate_website_url(self, value):
+        if not value or not value.strip():
+            return ""
+        value = value.strip()
+        url_regex = r'^(https?://)[\w\-]+(\.[\w\-]+)+(/[\w\-./?%&=]*)?$'
+        if not re.match(url_regex, value):
+            raise serializers.ValidationError("website_url_invalid")
+        return value
 
     def validate(self, data):
-        if data.get('password') != data.get('password_confirm'):
+        password = data.get('password', '')
+        password_confirm = data.get('password_confirm', '')
+
+        if not password_confirm:
+            raise serializers.ValidationError({
+                'password_confirm': 'password_confirm_required'
+            })
+        if password != password_confirm:
             raise serializers.ValidationError({
                 'password_confirm': 'passwords_not_match'
             })
@@ -332,7 +430,6 @@ class CompanyRegisterSerializer(serializers.Serializer):
             website_url=validated_data.get('website_url') or "",
             description=validated_data['description'],
         )
-
 
 # =========================
 # COMPANY LOGIN

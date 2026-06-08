@@ -10,6 +10,8 @@ import CompanyDashboard from "./pages/company/CompanyDashboard"
 import PostJob from "./pages/company/PostJob"
 import SeekerProfile from "./pages/seeker/SeekerProfile"
 import JobListings from "./pages/JobListings"
+import ForgotPassword from "./pages/ForgotPassword"
+import ResetPassword from "./pages/ResetPassword"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import './App.css'
@@ -26,6 +28,8 @@ function App() {
    <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:uidb64/:token" element={<ResetPassword />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/signup/seeker" element={<SeekerSignup />} />
       <Route path="/signup/company" element={<CompanySignup />} />

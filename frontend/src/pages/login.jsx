@@ -113,9 +113,9 @@ export default function Login() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className={labelClass}>{t("login.password")}</label>
-                <a href="#" className="text-xs text-blue-600 hover:underline">
+                <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">
                   {t("login.forgot")}
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <input
