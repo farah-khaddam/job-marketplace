@@ -9,7 +9,7 @@ from .views import (
     company_register,
     company_login,
 )
-
+ 
 urlpatterns = [
     path("", home, name="home"),
     path("choices/", get_choices, name="get_choices"),
