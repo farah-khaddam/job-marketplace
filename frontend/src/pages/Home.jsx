@@ -63,7 +63,7 @@ export default function Home() {
         <p className="text-sm text-white/60 mb-10 relative">{t("home.hero_sub")}</p>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-xl p-2 flex gap-2 max-w-xl mx-auto relative mb-10">
+        <div className="bg-white rounded-xl p-2 flex flex-col md:flex-row gap-2 max-w-xl mx-auto">
           <input
             type="text"
             value={search}
@@ -90,7 +90,7 @@ export default function Home() {
         </div>
 
         {/* Stats */}
-        <div className="flex justify-center gap-12 relative">
+        <div className="flex justify-center gap-12 relative mt-10">
           {[
             { num: "+2,000", label: t("home.stat_jobs") },
             { num: "+500", label: t("home.stat_companies") },
@@ -106,8 +106,8 @@ export default function Home() {
 
       {/* ===== قسم حسب حالة المستخدم ===== */}
       {isLoggedIn ? (
-        <div className="px-10 py-10">
-          <div className="grid grid-cols-2 gap-8">
+        <div className="px-4 md:px-10 py-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             {/* وظائف زارها مؤخراً */}
             <div>
@@ -150,11 +150,11 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div className="px-10 py-10">
+        <div className="px-4 md:px-10 py-10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-medium text-gray-900">{t("home.browse_by_category")}</h2>
           </div>
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {CATEGORIES.map(cat => (
               <button
                 key={cat.key}
@@ -170,7 +170,7 @@ export default function Home() {
       )}
 
       {/* ===== أحدث الوظائف ===== */}
-      <div className="px-10 pb-10">
+      <div className="px-4 md:px-10 py-10">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-medium text-gray-900">{t("home.latest_jobs")}</h2>
           <span
@@ -180,7 +180,7 @@ export default function Home() {
             {t("home.see_all")} ←
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {MOCK_JOBS.map(job => (
             <div
               key={job.id}
@@ -212,7 +212,7 @@ export default function Home() {
       </div>
 
       {/* ===== أبرز الشركات ===== */}
-      <div className="px-10 pb-12">
+      <div className="px-4 md:px-10 py-10">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-medium text-gray-900">
             {isAr ? "أبرز الشركات" : "Featured Companies"}
@@ -224,7 +224,7 @@ export default function Home() {
             {t("home.see_all")} ←
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURED_COMPANIES.map(company => (
             <div
               key={company.id}

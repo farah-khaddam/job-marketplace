@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { useState } from "react"
 
 export default function Navbar() {
   const { t, i18n } = useTranslation()
@@ -10,37 +11,43 @@ export default function Navbar() {
     localStorage.removeItem("token")
     navigate("/")
   }
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     // dir="rtl" ثابت دائماً بغض النظر عن اللغة
-    <nav className="bg-white border-b border-gray-100 px-10 py-4" dir="rtl">
+    <nav className="bg-white border-b border-gray-100 px-4 md:px-10 py-4" dir="rtl">
       <div className="flex items-center justify-between">
 
         {/* اللوغو — دائماً على اليمين */}
         <Link to="/" className="text-xl font-medium text-blue-900">
           Job<span className="text-blue-600">Portal</span>
         </Link>
-
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden text-2xl text-blue-900"
+        >
+          ☰
+        </button>
         {/* الروابط */}
-        <div className="flex items-center gap-7">
-          <Link to="/jobs" className="text-sm text-gray-500 hover:text-blue-600 transition">
+        <div className="hidden md:flex items-center gap-7">
+          <Link to="/jobs" className="text-xs md:text-sm text-gray-500 hover:text-blue-600 transition">
             {t("navbar.jobs")}
           </Link>
-          <Link to="/companies" className="text-sm text-gray-500 hover:text-blue-600 transition">
+          <Link to="/companies" className="text-xs md:text-sm text-gray-500 hover:text-blue-600 transition">
             {t("navbar.companies")}
           </Link>
-          <Link to="/about" className="text-sm text-gray-500 hover:text-blue-600 transition">
+          <Link to="/about" className="text-xs md:text-sm text-gray-500 hover:text-blue-600 transition">
             {t("navbar.about", "عن الموقع")}
           </Link>
 
           {isLoggedIn ? (
             <>
-              <Link to="/dashboard" className="text-sm text-gray-500 hover:text-blue-600 transition">
+              <Link to="/dashboard" className="text-xs md:text-sm text-gray-500 hover:text-blue-600 transition">
                 {t("navbar.dashboard")}
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-sm text-red-500 hover:text-red-600 transition"
+                className="text-xs md:text-sm text-red-500 hover:text-red-600 transition"
               >
                 {t("navbar.logout")}
               </button>
@@ -64,6 +71,74 @@ export default function Navbar() {
         </div>
 
       </div>
+      {menuOpen && (
+  <div className="md:hidden flex flex-col gap-4 mt-4 pb-4">
+
+    <Link
+      to="/jobs"
+      onClick={() => setMenuOpen(false)}
+      className="text-sm text-gray-600"
+    >
+      {t("navbar.jobs")}
+    </Link>
+
+    <Link
+      to="/companies"
+      onClick={() => setMenuOpen(false)}
+      className="text-sm text-gray-600"
+    >
+      {t("navbar.companies")}
+    </Link>
+
+    <Link
+      to="/about"
+      onClick={() => setMenuOpen(false)}
+      className="text-sm text-gray-600"
+    >
+      {t("navbar.about", "عن الموقع")}
+    </Link>
+
+    {isLoggedIn ? (
+      <>
+        <Link
+          to="/dashboard"
+          onClick={() => setMenuOpen(false)}
+          className="text-sm text-gray-600"
+        >
+          {t("navbar.dashboard")}
+        </Link>
+
+        <button
+          onClick={() => {
+            handleLogout()
+            setMenuOpen(false)
+          }}
+          className="text-sm text-red-500 text-right"
+        >
+          {t("navbar.logout")}
+        </button>
+      </>
+    ) : (
+      <button
+        onClick={() => {
+          navigate("/login")
+          setMenuOpen(false)
+        }}
+        className="bg-blue-600 text-white rounded-lg py-2"
+      >
+        {t("navbar.start", "تسجيل الدخول")}
+      </button>
+    )}
+
+    <button
+      onClick={() => i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar")}
+      className="border rounded-lg py-2 text-sm"
+    >
+      {i18n.language === "ar" ? "EN" : "ع"}
+    </button>
+
+  </div>
+)}
     </nav>
   )
 }
