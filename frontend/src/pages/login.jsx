@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import EyeIcon from "../components/EyeIcon"
 import LangToggle from "../components/LangToggle"
@@ -51,6 +51,37 @@ export default function Login() {
       setLoading(false)
     }
   }
+
+  const handleGoogleLogin = async (response) => {
+  const res = await fetch("http://localhost:8000/api/auth/google/login/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id_token: response.credential,
+    }),
+  })
+
+  const data = await res.json()
+  console.log(data)
+}
+
+
+  useEffect(() => {
+  if (!window.google) return;
+
+  window.google.accounts.id.initialize({
+    client_id: "86559827847-b7o0637pefu1fvsn9du0o8476kb04s69.apps.googleusercontent.com",
+    callback: handleGoogleLogin,
+  });
+
+  window.google.accounts.id.renderButton(
+    document.getElementById("googleBtn"),
+    { theme: "outline", size: "large" }
+  );
+}, []);
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -163,9 +194,7 @@ export default function Login() {
             <span className="flex-1 h-px bg-gray-200" />
           </div>
 
-          <button className="w-full py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-2">
-            {t("login.continue_google")}
-          </button>
+          <div id="googleBtn"></div>
         </div>
 
       </div>
