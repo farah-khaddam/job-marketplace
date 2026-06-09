@@ -21,6 +21,7 @@ from .services.otp_service import (
     verify_company_otp,
     send_company_otp,
 )
+from jobs.services.company_auth_service import get_or_create_company_token
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ def company_login(request):
         - password: str
     
     Returns:
-        - Success (200): Company details and session info
+        - Success (200): Company details, token for jobs API, and session info
         - Error (400): Invalid credentials
         - Error (404): Company not found
     """
@@ -279,6 +280,7 @@ def company_login(request):
                 {
                     'message': 'Login successful',
                     'user_type': 'company',
+                    'token': get_or_create_company_token(company),
                     'data': detail_serializer.data
                 },
                 status=status.HTTP_200_OK

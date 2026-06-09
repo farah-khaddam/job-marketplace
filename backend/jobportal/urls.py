@@ -8,6 +8,7 @@ urlpatterns = [
 
     # Your app's API routes
     path('api/', include('users.urls')),
+    path('api/jobs/', include('jobs.urls')),
 
     # dj-rest-auth routes (password reset etc.)
     path('api/auth/', include('dj_rest_auth.urls')),
