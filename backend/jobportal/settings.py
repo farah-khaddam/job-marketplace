@@ -21,7 +21,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users.apps.UsersConfig', 
+    'users.apps.UsersConfig',
+    'jobs.apps.JobsConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -70,11 +71,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jobportal.wsgi.application'
 
+DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}')
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
+        default=DATABASE_URL,
         conn_max_age=600,
-        ssl_require=True,
+        ssl_require=DATABASE_URL.startswith(('postgres', 'postgresql')),
     )
 }
 

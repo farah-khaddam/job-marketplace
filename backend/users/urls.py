@@ -12,7 +12,7 @@ from .views import (
     password_reset_validate,
     password_reset_confirm,
 )
-
+ 
 urlpatterns = [
     path("", home, name="home"),
     path("choices/", get_choices, name="get_choices"),

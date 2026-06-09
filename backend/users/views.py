@@ -29,8 +29,12 @@ from .services.otp_service import (
     verify_company_otp,
     send_company_otp,
 )
+
+# --- تم الاحتفاظ بالمستوردات من كلا الفرعين هنا ---
 import jwt
 import requests
+from jobs.services.company_auth_service import get_or_create_company_token
+# --------------------------------------------------
 
 logger = logging.getLogger(__name__)
 
@@ -281,9 +285,6 @@ def company_verify_otp(request):
     return verify_company_otp(email, otp)
 
 
-
-
-
 @api_view(['POST'])
 def login_user(request):
     email = request.data.get('email', '').lower().strip()
@@ -359,8 +360,9 @@ def company_register(request):
     validated_data = serializer.validated_data
     email = validated_data['email'].lower().strip()
 
-
     return send_company_otp(email, validated_data)
+
+
 def get_google_client_id():
     client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
     if client_id:
@@ -434,6 +436,7 @@ def generate_jwt_tokens(email, user_type, user_id):
     return access_token, refresh_token
 
 
+
 @api_view(['POST'])
 def google_login(request):
     """Endpoint for Google login using an ID token without creating new user accounts."""
@@ -481,3 +484,67 @@ def google_login(request):
 
     response_serializer = GoogleLoginResponseSerializer(response_data)
     return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def company_login(request):
+    """
+    Endpoint for Company Login.
+    
+    Required fields:
+        - email: str
+        - password: str
+    
+    Returns:
+        - Success (200): Company details, token for jobs API, and session info
+        - Error (400): Invalid credentials
+        - Error (404): Company not found
+    """
+    serializer = CompanyLoginSerializer(data=request.data)
+    try:
+        serializer.is_valid(raise_exception=True)
+    except serializers.ValidationError as exc:
+        logger.debug('Company login validation errors: %s', exc.detail)
+        raise
+
+    email = serializer.validated_data.get('email', '').lower().strip()
+    password = serializer.validated_data.get('password', '')
+
+    try:
+        company = Company.objects.get(email=email)
+        
+        # Verify password
+        if check_password(password, company.password):
+            
+            if company.approval_status == 'pending':
+                return Response(
+                    {'error': 'Your company account is under review'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            if company.approval_status == 'rejected':
+                return Response(
+                    {'error': 'Your company account has been rejected'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            detail_serializer = CompanyDetailSerializer(company)
+            return Response(
+                {
+                    'message': 'Login successful',
+                    'user_type': 'company',
+                    'token': get_or_create_company_token(company),
+                    'data': detail_serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {'error': 'Invalid email or password'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Company.DoesNotExist:
+        return Response(
+            {'error': 'Company not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
