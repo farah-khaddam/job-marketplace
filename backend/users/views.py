@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime, timedelta
-
+from django.utils import timezone
+from .models import EmailVerification
 from django.conf import settings
 from django.core.mail import send_mail
 from django.http import JsonResponse
-from django.utils import timezone
 from django.utils.translation import get_language
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -241,33 +241,12 @@ def password_reset_confirm(request):
 
 @api_view(['POST'])
 def job_seeker_register(request):
-    """
-    Endpoint for Job Seeker Registration.
-    
-    Required fields:
-        - full_name: str (150 chars max)
-        - email: str (unique)
-        - phone_number: str (phone format)
-        - password: str (min 6 chars)
-        - password_confirm: str (must match password)
-    
-    Returns:
-        - Success (200): Verification code sent to email
-        - Error (400): Validation errors
-    """
     serializer = JobSeekerOTPRegisterSerializer(data=request.data)
-    if not serializer.is_valid():
-        errors = serializer.errors
-        if "email" in errors:
-            code = errors["email"][0]
-            return Response({"error_code": code}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
 
-    validated_data = serializer.validated_data
-    email = validated_data['email'].lower()
+    email = serializer.validated_data['email'].lower().strip()
 
-    return send_job_seeker_otp(email, validated_data)
-
+    return send_job_seeker_otp(email, serializer.validated_data)
 
 @api_view(['POST'])
 def verify_otp(request):
@@ -374,41 +353,22 @@ def login_user(request):
 
 @api_view(['POST'])
 def company_register(request):
-    """
-    Endpoint for Company Registration.
-    
-    Required fields:
-        - company_name: str (200 chars max)
-        - email: str (unique)
-        - phone_number: str (phone format)
-        - governorate: str (choices: damascus, idlib)
-        - company_type: str (choices: programming, civil)
-        - website_url: str (optional)
-        - description: str
-        - password: str (min 6 chars)
-        - password_confirm: str (must match password)
-    
-    Returns:
-        - Success (200): Verification code sent to company email
-        - Error (400): Validation errors
-    """
     serializer = CompanyRegisterSerializer(data=request.data)
-    try:
-        serializer.is_valid(raise_exception=True)
-    except serializers.ValidationError as exc:
-        logger.debug('Company registration validation errors: %s', exc.detail)
-        print('Company registration validation errors:', exc.detail)
-        raise
+    serializer.is_valid(raise_exception=True)
 
     validated_data = serializer.validated_data
     email = validated_data['email'].lower().strip()
 
+
     return send_company_otp(email, validated_data)
-
-
-
 def get_google_client_id():
-    return getattr(settings, 'GOOGLE_CLIENT_ID', None) or settings.SOCIALACCOUNT_PROVIDERS.get('google', {}).get('CLIENT_ID')
+    client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+    if client_id:
+        return client_id
+
+    google_provider = getattr(settings, 'SOCIALACCOUNT_PROVIDERS', {}).get('google', {})
+    google_app = google_provider.get('APP', {})
+    return google_app.get('client_id') or google_app.get('CLIENT_ID')
 
 
 def verify_google_id_token(id_token):
@@ -434,7 +394,11 @@ def verify_google_id_token(id_token):
         raise ValueError('Google account email is not verified.')
 
     client_id = get_google_client_id()
-    if client_id and token_info.get('aud') != client_id:
+    if not client_id:
+        logger.error('Google login attempted without a configured GOOGLE_CLIENT_ID.')
+        raise ValueError('Google login is not configured correctly.')
+
+    if token_info.get('aud') != client_id:
         raise ValueError('Google token audience does not match the configured client ID.')
 
     return token_info
@@ -496,7 +460,7 @@ def google_login(request):
     if not user:
         return Response(
             {
-                'error': 'This Google account is not registered on this platform. Please create an account first.'
+                'error': 'User not found. Please create an account first.'
             },
             status=status.HTTP_400_BAD_REQUEST
         )
@@ -509,10 +473,9 @@ def google_login(request):
     )
 
     response_data = {
-        'is_new_user': False,
-        'is_profile_completed': True,
         'access_token': access_token,
         'refresh_token': refresh_token,
+        'user_type': user_type,
         'user': user,
     }
 

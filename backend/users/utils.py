@@ -50,7 +50,7 @@ def send_otp_email(pending_registration, request=None):
 
     try:
         send_mail(
-            subject='Your verification code',
+            subject='Job Portal - verification code',
             message=(
                 f'Your OTP verification code is: {otp}\n\n'
                 f'This code expires in 10 minutes.\n\n'
@@ -112,6 +112,32 @@ def send_company_rejection_email(company):
         )
     except Exception as e:
         logger.error(f"[send_company_rejection_email] Failed to send email to {company.email}: {e}")
+
+def send_jobseeker_created_email(user):
+    send_mail(
+        subject='Account created successfully',
+        message=(
+            'Your account has been created successfully.\n\n'
+            'You can now log in and start applying for jobs.\n\n'
+            'Welcome to the platform!'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+
+def send_jobseeker_deleted_email(user):
+    send_mail(
+        subject='Account deleted',
+        message=(
+            'Your account has been deleted from our system.\n\n'
+            'If this was a mistake, please contact support.'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
 
 
 # =========================

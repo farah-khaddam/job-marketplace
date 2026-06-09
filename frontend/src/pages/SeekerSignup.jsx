@@ -88,7 +88,7 @@ export default function SeekerSignup() {
 
   const resolveApiError = (data, fallback) => data?.error_code ? t(`seeker_signup.${data.error_code}`) : t(fallback)
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.fullName || !form.email || !form.phone || !form.password || !form.confirmPassword) { setError(t("seeker_signup.error_required")); return }
     if (Object.values(fieldErrors).some(Boolean)) return
@@ -99,12 +99,23 @@ export default function SeekerSignup() {
         body: JSON.stringify({ full_name: form.fullName, email: form.email, phone_number: `${form.phoneCountryCode}${form.phone}`, password: form.password, password_confirm: form.confirmPassword }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(resolveApiError(data, "seeker_signup.error_required")); return }
+      if (!res.ok) {
+        if (data?.email) {
+          const emailErr = Array.isArray(data.email) ? data.email[0] : data.email
+          setFieldErrors(p => ({ ...p, email: t(`seeker_signup.${emailErr}`) }))
+        } else if (data?.phone_number) {
+          const phoneErr = Array.isArray(data.phone_number) ? data.phone_number[0] : data.phone_number
+          setFieldErrors(p => ({ ...p, phone: t(`seeker_signup.${phoneErr}`) }))
+        } else {
+          setError(resolveApiError(data, "seeker_signup.error_required"))
+        }
+        return
+      }
       setCooldown(60); setStep(STEPS.OTP)
     } catch { setError(t("seeker_signup.error_network")) }
     finally { setLoading(false) }
   }
-
+  
   const handleVerifyOtp = async (e) => {
     e.preventDefault(); setError(""); setLoading(true)
     try {

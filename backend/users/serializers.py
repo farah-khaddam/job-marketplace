@@ -73,7 +73,7 @@ def validate_phone_number_value(value):
     if len(digits_only) < 10:
         raise serializers.ValidationError("phone_number_too_short")
 
-    if len(digits_only) > 12:
+    if len(digits_only) > 15:
         raise serializers.ValidationError("phone_number_too_long")
 
     return value
@@ -102,14 +102,6 @@ def validate_email_not_registered(value, user_type='job_seeker'):
     else:
         if Company.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("email_already_registered")
-
-    existing_verification = EmailVerification.objects.filter(email__iexact=value, expires_at__gt=timezone.now()).first()
-    if existing_verification:
-        payload = existing_verification.payload or {}
-        user_type = getattr(existing_verification, 'user_type', None) or 'job_seeker'
-        if user_type == 'company' and payload.get('approval_status') == 'pending_admin_approval':
-            raise serializers.ValidationError("company_pending_approval")
-        raise serializers.ValidationError("email_pending_verification")
 
     return value
 
@@ -511,15 +503,13 @@ class ResendOTPSerializer(serializers.Serializer):
 # =========================
 
 class GoogleLoginResponseSerializer(serializers.Serializer):
-    is_new_user = serializers.BooleanField()
-    is_profile_completed = serializers.BooleanField()
     access_token = serializers.CharField()
     refresh_token = serializers.CharField()
+    user_type = serializers.CharField()
     user = serializers.SerializerMethodField()
 
     def get_user(self, obj):
         user = obj['user']
-        return {
-            'email': user.email,
-            'full_name': getattr(user, 'full_name', ''),
-        }
+        if hasattr(user, 'full_name'):
+            return JobSeekerDetailSerializer(user).data
+        return CompanyDetailSerializer(user).data

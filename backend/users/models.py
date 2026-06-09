@@ -21,11 +21,12 @@ class CustomUser(AbstractUser):
 
 class EmailVerification(models.Model):
     """Stores a pending registration OTP and the associated registration payload."""
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     otp_hash = models.CharField(max_length=128)
     payload = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
+    otp_expires_at = models.DateTimeField(null=True, blank=True)
+    request_expires_at = models.DateTimeField(null=True, blank=True)
     user_type = models.CharField(
     max_length=20,
     choices=[
@@ -42,10 +43,24 @@ class EmailVerification(models.Model):
         ordering = ['-created_at']
 
     @property
-    def is_expired(self):
-        return timezone.now() > self.expires_at
+    def is_otp_expired(self):
+     if not self.otp_expires_at:
+        return True
+     return timezone.now() > self.otp_expires_at
 
 
+    @property
+    def is_request_expired(self):
+     if not self.request_expires_at:
+        return True
+     return timezone.now() > self.request_expires_at
+    
+    
+    @classmethod
+    def cleanup_expired(cls):
+      cls.objects.filter(
+        request_expires_at__lt=timezone.now()
+      ).delete()
 
 GOVERNORATE_CHOICES = [
     ('damascus', 'Damascus'),
@@ -82,6 +97,8 @@ class JobSeeker(models.Model):
     Model for job seekers who want to search for jobs.
     Stores personal information specific to job seekers.
     """
+
+
     
     # Basic Information
     full_name = models.CharField(
@@ -186,6 +203,10 @@ class Company(models.Model):
         self.approval_status = 'rejected'
         self.save()  
 
+
+    approval_email_sent = models.BooleanField(default=False)
+    rejection_email_sent = models.BooleanField(default=False)
+    
     # Company Description
     website_url = models.URLField(
         max_length=255,

@@ -120,8 +120,13 @@ SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['email', 'profile'],
         'AUTH_PARAMS': {'access_type': 'online'},
-    },
 
+        'APP': {
+            'client_id': os.getenv("GOOGLE_CLIENT_ID"),
+            'secret': os.getenv("GOOGLE_CLIENT_SECRET"),
+            'key': ''
+        }
+    },
 }
 
 AUTH_USER_MODEL = 'users.CustomUser'

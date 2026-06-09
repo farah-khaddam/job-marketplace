@@ -16,6 +16,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
+function handlePostLoginRedirect(data) {
+  const userType =
+    data.user_type || data.user?.user_type
+
+  if (userType === "company") {
+    navigate("/company/dashboard")
+  } else if (userType === "job_seeker") {
+    navigate("/")
+  }
+}
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -38,8 +49,8 @@ export default function Login() {
 
       if (res.ok) {
         localStorage.setItem("token", data.key)
-        // TODO: لما رفيقتك تضيف الـ role، نفرّق هون بين الشركة والباحث
-        navigate("/")
+        // Redirect based on role if backend provided `user_type`
+        handlePostLoginRedirect(data)
       } else {
         const firstError = Object.values(data)[0]
         setError(Array.isArray(firstError) ? firstError[0] : firstError)
@@ -51,22 +62,44 @@ export default function Login() {
       setLoading(false)
     }
   }
+//new
+const handleGoogleLogin = async (response) => {
+  try {
+    const res = await fetch("http://localhost:8000/api/auth/google/login/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id_token: response.credential,
+      }),
+    })
 
-  const handleGoogleLogin = async (response) => {
-  const res = await fetch("http://localhost:8000/api/auth/google/login/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      id_token: response.credential,
-    }),
-  })
+    const data = await res.json()
+    console.log("Google login response:", data)
 
-  const data = await res.json()
-  console.log(data)
+    if (res.ok) {
+     
+    localStorage.setItem("token", data.access_token)
+    localStorage.setItem("refresh_token", data.refresh_token)
+    localStorage.setItem("user", JSON.stringify(data.user))
+      // Redirect based on role if backend provided `user_type`
+    handlePostLoginRedirect(data)
+    } 
+    else {
+      setError(data.error || "Google login failed")
+
+     
+      if (data.error?.includes("not registered")) {
+        navigate("/signup")
+      }
+    }
+  } catch (err) {
+    console.error(err)
+    setError("Network error during Google login")
+  }
 }
-
+//new
 
   useEffect(() => {
   if (!window.google) return;

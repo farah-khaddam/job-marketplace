@@ -212,35 +212,57 @@ export default function CompanySignup() {
   }
 
   // ─── STEP 2: Resend OTP ─────────────────────────────────────────────────────
-  const handleResendOtp = async () => {
-    if (cooldown > 0) return
-    setError("")
-    setLoading(true)
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/company/register/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          company_name:     form.companyName,
-          email:            form.email,
-          phone_number:     `${form.phoneCountryCode}${form.phone}`,
-          governorate:      form.governorate,
-          company_type:     form.companyType,
-          website_url:      form.website || undefined,
-          description:      form.description,
-          password:         form.password,
-          password_confirm: form.confirmPassword,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(resolveApiError(data, "company_signup.error_network")); return }
-      setCooldown(60)
-    } catch {
-      setError(t("company_signup.error_network"))
-    } finally {
-      setLoading(false)
+const handleResendOtp = async () => {
+  if (cooldown > 0) return
+  setError("")
+  setLoading(true)
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/company/register/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        company_name:     form.companyName,
+        email:            form.email,
+        phone_number:     `${form.phoneCountryCode}${form.phone}`,
+        governorate:      form.governorate,
+        company_type:     form.companyType,
+        website_url:      form.website || undefined,
+        description:      form.description,
+        password:         form.password,
+        password_confirm: form.confirmPassword,
+      }),
+    })
+    const data = await res.json()
+
+    if (data?.otp_error === "otp_error_wait") {
+      setError(t("company_signup.otp_error_wait"))
+      return
     }
+    if (data?.otp_error === "otp_error_limit") {
+      setError(t("company_signup.otp_error_limit"))
+      return
+    }
+
+
+    if (data?.error_code === "company_pending_approval") {
+      setError(t("company_signup.already_verified_pending"))
+      return
+    }
+
+    if (!res.ok) {
+      setError(resolveApiError(data, "company_signup.error_network"))
+      return
+    }
+
+    setCooldown(60)
+    setOtpValues(Array(6).fill(""))
+    setOtp("")
+  } catch {
+    setError(t("company_signup.error_network"))
+  } finally {
+    setLoading(false)
   }
+}
 
   // ─── Styling helpers (from origin/main) ─────────────────────────────────────
   const inputCls = (hasErr) =>

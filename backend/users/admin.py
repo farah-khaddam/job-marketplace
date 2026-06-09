@@ -1,211 +1,411 @@
 from django.contrib import admin
-from .models import JobSeeker, Company, EmailVerification
 from django.utils.html import format_html
 from django.contrib.auth.hashers import make_password
-from django.conf import settings
-from django.core.mail import send_mail
-from django.utils.translation import gettext_lazy as _
 import logging
+
+from .models import JobSeeker, Company, EmailVerification
+from .email_utils import (
+    send_company_approval_email,
+    send_company_rejection_email,
+    send_company_deactivation_email,
+    send_company_welcome_back_email,
+    send_company_deletion_email,
+)
+from .utils import (
+    send_jobseeker_deleted_email,  # 👈 تم إضافة استيراد دالة حذف حساب الباحث
+)
 
 logger = logging.getLogger(__name__)
 
 
-
-@admin.action(description="Approve selected companies")
-def approve_companies(modeladmin, request, queryset):
-    companies = list(queryset)
-    queryset.update(approval_status='approved')
-    for company in companies:
-        try:
-            send_mail(
-                subject='Your company account has been approved',
-                message=(
-                    f'Hello {company.company_name},\n\n'
-                    'Your company account has been approved. You can now log in using your registered email address.\n\n'
-                    'If you need assistance, please contact support.'
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[company.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            logger.error(f"[approve_companies] Failed to send approval email to {company.email}: {e}")
-
-
-@admin.action(description="Reject selected companies")
-def reject_companies(modeladmin, request, queryset):
-    companies = list(queryset)
-    queryset.update(approval_status='rejected')
-    for company in companies:
-        try:
-            subject = 'Your company registration request was rejected'
-            if company.rejection_reason:
-                message = (
-                    f'Hello {company.company_name},\n\n'
-                    'We are sorry to inform you that your company registration request has been rejected.\n\n'
-                    f'Reason: {company.rejection_reason}\n\n'
-                    'If you have questions, please contact support for more information.'
-                )
-            else:
-                message = (
-                    f'Hello {company.company_name},\n\n'
-                    'We are sorry to inform you that your company registration request has been rejected.\n\n'
-                    'If you have questions, please contact support for more information.'
-                )
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[company.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            logger.error(f"[reject_companies] Failed to send rejection email to {company.email}: {e}")
-
+# ──────────────────────────────────────────────
+# EmailVerification actions (pending companies)
+# ──────────────────────────────────────────────
 
 @admin.action(description="Approve and create company account")
 def approve_pending_company(modeladmin, request, queryset):
-    """Create Company objects from approved EmailVerification records with pending company data"""
     created_count = 0
+
     for verification in queryset:
         payload = verification.payload or {}
-        
-        # Only process if this has pending company approval data
-        if payload.get('approval_status') == 'pending_admin_approval':
-            try:
-                # Create the company from stored payload
-                Company.objects.create(
-                    company_name=payload.get('company_name'),
-                    email=verification.email,
-                    phone_number=payload.get('phone_number'),
-                    password=payload.get('password_hash') or make_password(payload.get('password', '')),
-                    governorate=payload.get('governorate'),
-                    company_type=payload.get('company_type'),
-                    website_url=payload.get('website_url', '') or '',
-                    description=payload.get('description'),
-                    approval_status='approved',
-                )
-                # Delete the verification record after company is created
-                verification.delete()
-                created_count += 1
-            except Exception as e:
-                logger.error(f"Failed to create company from EmailVerification {verification.email}: {str(e)}")
-    
-    modeladmin.message_user(request, f"Successfully created {created_count} company account(s).")
+
+        if payload.get('approval_status') != 'pending_admin_approval':
+            continue
+
+        # منع إنشاء شركة بنفس الإيميل إذا كانت موجودة ومفعّلة
+        if Company.objects.filter(
+            email__iexact=verification.email
+        ).exclude(approval_status='rejected').exists():
+            modeladmin.message_user(
+                request,
+                f"Skipped {verification.email}: an active company with this email already exists.",
+                level='warning',
+            )
+            continue
+
+        try:
+            company = Company.objects.create(
+                company_name=payload.get('company_name'),
+                email=verification.email,
+                phone_number=payload.get('phone_number'),
+                password=payload.get('password_hash') or make_password(payload.get('password', '')),
+                governorate=payload.get('governorate'),
+                company_type=payload.get('company_type'),
+                website_url=payload.get('website_url', '') or '',
+                description=payload.get('description'),
+                approval_status='approved',
+                approval_email_sent=True,   # نضع True قبل الإرسال لمنع التكرار
+            )
+
+            send_company_approval_email(company)
+            verification.delete()
+            created_count += 1
+
+        except Exception as e:
+            logger.error(
+                f"Failed to create company from EmailVerification {verification.email}: {e}"
+            )
+
+    modeladmin.message_user(
+        request,
+        f"Successfully created {created_count} company account(s)."
+    )
 
 
 @admin.action(description="Reject pending company registration")
 def reject_pending_company(modeladmin, request, queryset):
-    """Reject pending company registrations by deleting EmailVerification records"""
-    deleted_count = queryset.count()
-    queryset.delete()
-    modeladmin.message_user(request, f"Successfully rejected {deleted_count} pending company registration(s).")
+    count = 0
 
+    for verification in queryset:
+        payload = verification.payload or {}
+
+        if payload.get('approval_status') != 'pending_admin_approval':
+            continue
+
+        # إذا كان قد رُفض سابقاً لا نرسل إيميل مرة ثانية
+        if payload.get('rejection_email_sent'):
+            continue
+
+        class TempCompany:
+            pass
+
+        temp = TempCompany()
+        temp.company_name = payload.get('company_name', '')
+        temp.email = verification.email
+        temp.rejection_reason = None
+
+        send_company_rejection_email(temp)
+
+        # تحديث الحالة بدلاً من حذف السجل
+        payload['approval_status'] = 'rejected'
+        payload['rejection_email_sent'] = True
+        verification.payload = payload
+        verification.save()
+
+        count += 1
+
+    modeladmin.message_user(
+        request,
+        f"Rejected {count} pending company registration(s)."
+    )
+
+# ──────────────────────────────────────────────
+# Company model actions (approved companies)
+# ──────────────────────────────────────────────
+
+@admin.action(description="Approve selected companies")
+def approve_companies(modeladmin, request, queryset):
+    for company in queryset:
+        if company.approval_status == 'approved':
+            continue
+
+        was_rejected = company.approval_status == 'rejected'
+
+        if not company.approval_email_sent:
+            company.approval_status = 'approved'
+            company.is_active = True
+            company.approval_email_sent = True
+            company.rejection_email_sent = False
+            company.save()
+            if was_rejected:
+                send_company_welcome_back_email(company)
+            else:
+                send_company_approval_email(company)
+        else:
+            company.approval_status = 'approved'
+            company.is_active = True
+            company.rejection_email_sent = False
+            company.save()
+            if was_rejected:
+                send_company_welcome_back_email(company)
+
+@admin.action(description="Reject selected companies")
+def reject_companies(modeladmin, request, queryset):
+    for company in queryset:
+        if company.approval_status == 'rejected':
+            continue
+
+        was_approved = company.approval_status == 'approved'
+
+        company.approval_status = 'rejected'
+        company.is_active = False
+        company.rejection_email_sent = True
+        company.approval_email_sent = False  
+        company.save()
+
+        if was_approved:
+            send_company_deactivation_email(company)
+        else:
+            send_company_rejection_email(company)
+
+# ──────────────────────────────────────────────
+# Admin registrations
+# ──────────────────────────────────────────────
 
 @admin.register(EmailVerification)
 class EmailVerificationAdmin(admin.ModelAdmin):
-    """Admin interface for Email Verification (Pending Registrations)"""
-    
-    list_display = ['email', 'user_type', 'approval_status_display', 'created_at', 'expires_at', 'is_expired']
-    list_filter = ['user_type', 'created_at', 'expires_at']
-    search_fields = ['email']
-    readonly_fields = ['email', 'otp_hash', 'payload', 'created_at', 'expires_at', 'user_type']
     actions = [approve_pending_company, reject_pending_company]
     
-    fieldsets = (
-        ('Email Information', {
-            'fields': ('email', 'user_type')
-        }),
-        ('OTP Details', {
-            'fields': ('otp_hash',)
-        }),
-        ('Payload', {
-            'fields': ('payload',)
-        }),
-        ('Timing', {
-            'fields': ('created_at', 'expires_at'),
-            'classes': ('collapse',)
-        }),
-    )
+    # 🟢 تم تعديل الأسماء هنا لاستدعاء دوال العرض الآمنة بالأسفل وتجنب خطأ الـ System Check
+    list_display = ['email', 'user_type', 'approval_status_display', 'created_at', 'expires_at_display', 'is_expired_display']
+    list_filter = ['user_type', 'created_at'] # ✂️ تم إزالة expires_at من الفلتر لأنه ليس حقلاً حقيقياً بقاعدة البيانات
+    search_fields = ['email']
+    readonly_fields = [
+        'email',
+        'user_type',
+        'approval_status_display',
+        'company_name_display',
+        'phone_number_display',
+        'governorate_display',
+        'company_type_display',
+        'website_display',
+        'description_display',
+        'seeker_full_name_display',
+        'seeker_phone_display',
+        'password_display',
+        'created_at',
+        'expires_at_display', # 🟢 تم التعديل هنا ليعمل كحقل قراءة فقط مخصص
+    ]
+
+    # ❌ لا يوجد fieldsets هنا — get_fieldsets بتتولى الأمر
+
+    def get_fieldsets(self, request, obj=None):
+        base = [
+            ('Email Information', {
+                'fields': ('email', 'user_type')
+            }),
+            ('Timing', {
+                'fields': ('created_at', 'expires_at_display'), # 🟢 تم التعديل هنا
+                'classes': ('collapse',)
+            }),
+        ]
+
+        if obj and obj.user_type == 'job_seeker':
+            base.insert(1, ('Job Seeker Information', {
+                'fields': (
+                    'seeker_full_name_display',
+                    'seeker_phone_display',
+                    'password_display',
+                )
+            }))
+        else:
+            base.insert(1, ('Company Information', {
+                'fields': (
+                    'company_name_display',
+                    'phone_number_display',
+                    'governorate_display',
+                    'company_type_display',
+                    'website_display',
+                    'description_display',
+                    'password_display',
+                )
+            }))
+            base.append(('Status', {
+                'fields': ('approval_status_display',)
+            }))
+
+        return base
     
-    def approval_status_display(self, obj):
-        """Display approval status for pending company registrations"""
+    # 🟢 دالة لعرض وقت الانتهاء من الـ payload بأمان دون قفل السيرفر
+    def expires_at_display(self, obj):
         payload = obj.payload or {}
-        status = payload.get('approval_status')
-        if status == 'pending_admin_approval':
-            return format_html("<span style='color:orange'>⏳ Pending Admin Approval</span>")
-        return "N/A"
+        return payload.get('expires_at') or "-"
+    expires_at_display.short_description = "Expires At"
+
+    # 🟢 دالة لعرض حالة انتهاء الصلاحية بأمان
+    def is_expired_display(self, obj):
+        # إذا كانت الدالة موجودة في الموديل استدعها، وإلا أظهر حالة افتراضية
+        if hasattr(obj, 'is_expired'):
+            return "Yes" if callable(obj.is_expired) and obj.is_expired() else "No"
+        return "No"
+    is_expired_display.short_description = "Is Expired"
     
-    approval_status_display.short_description = "Company Status"
+    def password_display(self, obj):
+        payload = obj.payload or {}
+        return payload.get('password_hash') or payload.get('password') or '-'
+    password_display.short_description = "Password (hashed)"
+
     
+    def seeker_full_name_display(self, obj):
+        return (obj.payload or {}).get('full_name', '-') or '-'
+    seeker_full_name_display.short_description = "Full Name"
+
+    def seeker_phone_display(self, obj):
+        return (obj.payload or {}).get('phone_number', '-') or '-'
+    seeker_phone_display.short_description = "Phone Number"
+
+    def company_name_display(self, obj):
+        return (obj.payload or {}).get('company_name', '-') or '-'
+    company_name_display.short_description = "Company Name"
+
+    def phone_number_display(self, obj):
+        return (obj.payload or {}).get('phone_number', '-')
+    phone_number_display.short_description = "Phone Number"
+
+    def governorate_display(self, obj):
+        return (obj.payload or {}).get('governorate', '-')
+    governorate_display.short_description = "Governorate"
+
+    def company_type_display(self, obj):
+        return (obj.payload or {}).get('company_type', '-')
+    company_type_display.short_description = "Company Type"
+
+    def website_display(self, obj):
+        return (obj.payload or {}).get('website_url', '-')
+    website_display.short_description = "Website"
+
+    def description_display(self, obj):
+        return (obj.payload or {}).get('description', '-')
+    description_display.short_description = "Description"
+
     def has_add_permission(self, request):
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
         return True
 
+    def approval_status_display(self, obj):
+        payload = obj.payload or {}
+        s = payload.get('approval_status')
+
+        if s == 'pending_admin_approval':
+            return format_html("<span style='color:orange'>⏳ Pending Admin Approval</span>")
+        elif s == 'rejected':
+            return format_html("<span style='color:red'>❌ Rejected</span>")
+        return "-"
+    approval_status_display.short_description = "Company Status"
 
 @admin.register(JobSeeker)
 class JobSeekerAdmin(admin.ModelAdmin):
-    """Admin interface for Job Seeker model"""
-    
     list_display = ['full_name', 'email', 'phone_number', 'created_at', 'is_active']
     list_filter = ['is_active', 'created_at']
     search_fields = ['full_name', 'email', 'phone_number']
-    readonly_fields = ['created_at', 'updated_at']
-    
+    readonly_fields = ['created_at', 'updated_at', 'password']
+
     fieldsets = (
-        ('Personal Information', {
-            'fields': ('full_name', 'email', 'phone_number')
-        }),
-        ('Security', {
-            'fields': ('password',)
-        }),
-        ('Status', {
-            'fields': ('is_active',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
+        ('Personal Information', {'fields': ('full_name', 'email', 'phone_number')}),
+        ('Security', {'fields': ('password',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
+
+    # 🟢 إرسال البريد عند الحذف الفردي للباحث عن عمل
+    def delete_model(self, request, obj):
+        try:
+            send_jobseeker_deleted_email(obj)
+        except Exception as e:
+            logger.error(f"Failed to send deletion email to job seeker {obj.email}: {e}")
+        obj.delete()
+
+    # 🟢 إرسال البريد عند الحذف الجماعي (Bulk Delete) للباحثين عن عمل
+    def delete_queryset(self, request, queryset):
+        for seeker in queryset:
+            try:
+                send_jobseeker_deleted_email(seeker)
+            except Exception as e:
+                logger.error(f"Failed to send bulk deletion email to job seeker {seeker.email}: {e}")
+        queryset.delete()
+
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    """Admin interface for Company model"""
-    
-    list_display = ['company_name', 'email','status_badge', 'governorate', 'approval_status','company_type', 'created_at', 'is_active']
-    list_filter = ['is_active', 'governorate', 'company_type','approval_status', 'created_at']
+    list_display = [
+        'company_name', 'email', 'status_badge',
+        'governorate', 'approval_status',
+        'company_type', 'created_at', 'is_active'
+    ]
+    list_filter = ['is_active', 'governorate', 'company_type', 'approval_status']
     search_fields = ['company_name', 'email', 'phone_number']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'password']
     actions = [approve_companies, reject_companies]
+
     def status_badge(self, obj):
-      if obj.approval_status == "approved":
-        return format_html("<span style='color:green'>Approved</span>")
-      elif obj.approval_status == "rejected":
-        return format_html("<span style='color:red'>Rejected</span>")
-      return format_html("<span style='color:orange'>Pending</span>")
+        if obj.approval_status == 'approved':
+            return format_html("<span style='color:green'>✅ Approved</span>")
+        elif obj.approval_status == 'rejected':
+            return format_html("<span style='color:red'>❌ Rejected</span>")
+        return format_html("<span style='color:orange'>⏳ Pending</span>")
 
     status_badge.short_description = "Status"
+
+    def delete_model(self, request, obj):
+        send_company_deletion_email(obj)
+        obj.delete()
+
+    def delete_queryset(self, request, queryset):
+        for company in queryset:
+            send_company_deletion_email(company)
+        queryset.delete()
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            super().save_model(request, obj, form, change)
+            return
+
+        try:
+            original = Company.objects.get(pk=obj.pk)
+        except Company.DoesNotExist:
+            super().save_model(request, obj, form, change)
+            return
+
+        original_status = original.approval_status
+        new_status = obj.approval_status
+
+        super().save_model(request, obj, form, change)
+
+
+        # موافقة — إرسال إيميل مرة واحدة فقط
+        if original_status != 'approved' and new_status == 'approved':
+                was_rejected = original_status == 'rejected'
+                Company.objects.filter(pk=obj.pk).update(
+                   approval_email_sent=True,
+                   rejection_email_sent=False,
+                   is_active=True,
+                )
+                if was_rejected:
+                   send_company_welcome_back_email(obj)
+                else:
+                  if not obj.approval_email_sent:
+                   send_company_approval_email(obj)
+
+        # رفض — إرسال إيميل مرة واحدة فقط
+        elif original_status != 'rejected' and new_status == 'rejected':
+            if not obj.rejection_email_sent:
+                obj.rejection_email_sent = True
+                obj.is_active = False
+                Company.objects.filter(pk=obj.pk).update(
+                    rejection_email_sent=True,
+                    is_active=False,
+                )
+                if original_status == 'approved':
+                    send_company_deactivation_email(obj)
+                else:
+                    send_company_rejection_email(obj)
+
     fieldsets = (
-        ('Company Information', {
-            'fields': ('company_name', 'email', 'phone_number')
-        }),
-        ('Location & Business Type', {
-            'fields': ('governorate', 'company_type')
-        }),
-        ('Company Details', {
-            'fields': ('website_url', 'description')
-        }),
-        ('Security', {
-            'fields': ('password',)
-        }),
-        ('Status', {
-            'fields': ('is_active', 'approval_status', 'rejection_reason')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    
+        ('Company Information', {'fields': ('company_name', 'email', 'phone_number')}),
+        ('Location & Business Type', {'fields': ('governorate', 'company_type')}),
+        ('Company Details', {'fields': ('website_url', 'description')}),
+        ('Security', {'fields': ('password',)}),
+        ('Status', {'fields': ('is_active', 'approval_status', 'rejection_email_sent', 'approval_email_sent', 'rejection_reason')}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )

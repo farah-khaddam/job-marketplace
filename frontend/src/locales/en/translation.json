@@ -97,7 +97,9 @@
 "error_otp_invalid": "Invalid verification code",
 "resend_code_in": "Resend code in {{seconds}}s",
 "email_pending_verification": "Email pending verification",
-"error_network": "A network error occurred. Please try again."
+"error_network": "A network error occurred. Please try again.",
+"company_pending_approval": "This company account is already under review and awaiting administrator approval.",
+"cannot_change_pending_data": "You cannot change registration data at this time. Please complete registration with the current data and then edit it later, or wait 24 hours to re-register with new data."
 },
 
 "company_signup": {
@@ -132,7 +134,9 @@
 "error_otp_invalid": "Invalid verification code",
 "success_title": "Request submitted successfully",
 "success_message": "Your company registration request has been submitted and is awaiting administrator approval.",
-"go_to_login": "Go to Login"
+"go_to_login": "Go to Login",
+"already_verified_pending": "Your email is already verified and pending admin approval."
+
 },
 "country_code": {
   "select": "Select country code",
