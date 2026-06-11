@@ -118,52 +118,79 @@ def approve_companies(modeladmin, request, queryset):
     for company in queryset:
         if company.approval_status == 'approved':
             continue
+        original_status = company.approval_status
 
-        was_rejected = company.approval_status == 'rejected'
-
-        if not company.approval_email_sent:
-            company.approval_status = 'approved'
-            company.is_active = True
-            company.approval_email_sent = True
-            company.rejection_email_sent = False
-            company.save()
-            if was_rejected:
-                send_company_welcome_back_email(company)
-            else:
-                send_company_approval_email(company)
+        company.approval_status = 'approved'
+        company.is_active = True
+        company.approval_email_sent = True
+        company.rejection_email_sent = False            
+        company.save()
+        if original_status == 'rejected':
+            send_company_welcome_back_email(company)
         else:
-            company.approval_status = 'approved'
-            company.is_active = True
-            company.rejection_email_sent = False
-            company.save()
-            if was_rejected:
-                send_company_welcome_back_email(company)
-
+            send_company_approval_email(company)
+ 
 @admin.action(description="Reject selected companies")
 def reject_companies(modeladmin, request, queryset):
     for company in queryset:
         if company.approval_status == 'rejected':
             continue
 
-        was_approved = company.approval_status == 'approved'
+        original_status = company.approval_status
 
         company.approval_status = 'rejected'
         company.is_active = False
-        company.rejection_email_sent = True
+        company.rejection_email_sent = False
         company.approval_email_sent = False  
         company.save()
 
-        if was_approved:
+        if original_status == 'approved':
             send_company_deactivation_email(company)
         else:
             send_company_rejection_email(company)
-
 # ──────────────────────────────────────────────
 # Admin registrations
 # ──────────────────────────────────────────────
+from django import forms
 
+class EmailVerificationAdminForm(forms.ModelForm):
+    APPROVAL_CHOICES = [
+        ('', '---------'),
+        ('pending_admin_approval', 'Pending Admin Approval'),
+        ('rejected', 'Rejected'),
+    ]
+    approval_status = forms.ChoiceField(
+        choices=APPROVAL_CHOICES,
+        required=False,
+        label="Company Status"
+    )
+
+    class Meta:
+        model = EmailVerification
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            payload = self.instance.payload or {}
+            self.fields['approval_status'].initial = payload.get('approval_status', '')
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        payload = instance.payload or {}
+        new_status = self.cleaned_data.get('approval_status', '')
+        if new_status:
+            payload['approval_status'] = new_status
+        elif 'approval_status' in payload:
+            del payload['approval_status']
+        instance.payload = payload
+        if commit:
+            instance.save()
+        return instance
+    
 @admin.register(EmailVerification)
 class EmailVerificationAdmin(admin.ModelAdmin):
+    form = EmailVerificationAdminForm
     actions = [approve_pending_company, reject_pending_company]
     
     # 🟢 تم تعديل الأسماء هنا لاستدعاء دوال العرض الآمنة بالأسفل وتجنب خطأ الـ System Check
@@ -221,11 +248,54 @@ class EmailVerificationAdmin(admin.ModelAdmin):
                 )
             }))
             base.append(('Status', {
-                'fields': ('approval_status_display',)
+                'fields': ('approval_status', 'approval_status_display')
             }))
 
         return base
     
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            super().save_model(request, obj, form, change)
+            return
+
+        # 1. جلب الحالة القديمة قبل الحفظ من قاعدة البيانات
+        try:
+            original = EmailVerification.objects.get(pk=obj.pk)
+            original_payload = original.payload or {}
+            original_status = original_payload.get('approval_status')
+        except EmailVerification.DoesNotExist:
+            super().save_model(request, obj, form, change)
+            return
+
+        # 2. جلب الحالة الجديدة التي اختارها الآدمن من الفورم
+        new_payload = obj.payload or {}
+        new_status = new_payload.get('approval_status')
+
+        # 3. حفظ التعديل الأساسي في قاعدة البيانات أولاً
+        super().save_model(request, obj, form, change)
+
+        # 4. التحقق وإرسال إيميل الرفض إذا تغيرت الحالة إلى Rejected يدوياً
+        if original_status != 'rejected' and new_status == 'rejected':
+            if not new_payload.get('rejection_email_sent'):
+                # بناء كائن وهمي يطابق ما تتوقعه دالة إرسال الإيميل
+                class TempCompany:
+                    pass
+                temp = TempCompany()
+                temp.company_name = new_payload.get('company_name', '')
+                temp.email = obj.email
+                temp.rejection_reason = None
+
+                try:
+                    send_company_rejection_email(temp)
+                    # تحديث الـ payload لضمان عدم تكرار الإرسال مستقبلاً
+                    new_payload['rejection_email_sent'] = True
+                    obj.payload = new_payload
+                    EmailVerification.objects.filter(pk=obj.pk).update(payload=new_payload)                    
+                except Exception as e:
+                    logger.error(f"Failed to send rejection email via form save for {obj.email}: {e}")
+
+
     # 🟢 دالة لعرض وقت الانتهاء من الـ payload بأمان دون قفل السيرفر
     def expires_at_display(self, obj):
         payload = obj.payload or {}
@@ -335,7 +405,7 @@ class CompanyAdmin(admin.ModelAdmin):
     ]
     list_filter = ['is_active', 'governorate', 'company_type', 'approval_status']
     search_fields = ['company_name', 'email', 'phone_number']
-    readonly_fields = ['created_at', 'updated_at', 'password']
+    readonly_fields = ['created_at', 'updated_at', 'password','approval_email_sent', 'rejection_email_sent']
     actions = [approve_companies, reject_companies]
 
     def status_badge(self, obj):
@@ -369,33 +439,31 @@ class CompanyAdmin(admin.ModelAdmin):
 
         original_status = original.approval_status
         new_status = obj.approval_status
-
+        if new_status == 'approved':
+            obj.approval_email_sent = True
+            obj.rejection_email_sent = False
+            obj.is_active = True
+        elif new_status == 'rejected':
+            obj.approval_email_sent = False
+            obj.rejection_email_sent = True
+            obj.is_active = False
+        else:
+           
+            obj.approval_email_sent = False
+            obj.rejection_email_sent = False
+            obj.is_active = False 
         super().save_model(request, obj, form, change)
 
 
-        # موافقة — إرسال إيميل مرة واحدة فقط
+    
         if original_status != 'approved' and new_status == 'approved':
-                was_rejected = original_status == 'rejected'
-                Company.objects.filter(pk=obj.pk).update(
-                   approval_email_sent=True,
-                   rejection_email_sent=False,
-                   is_active=True,
-                )
-                if was_rejected:
-                   send_company_welcome_back_email(obj)
-                else:
-                  if not obj.approval_email_sent:
-                   send_company_approval_email(obj)
-
-        # رفض — إرسال إيميل مرة واحدة فقط
+            if original_status == 'rejected':
+                send_company_welcome_back_email(obj)
+            else:
+                send_company_approval_email(obj)
+       
         elif original_status != 'rejected' and new_status == 'rejected':
-            if not obj.rejection_email_sent:
-                obj.rejection_email_sent = True
-                obj.is_active = False
-                Company.objects.filter(pk=obj.pk).update(
-                    rejection_email_sent=True,
-                    is_active=False,
-                )
+
                 if original_status == 'approved':
                     send_company_deactivation_email(obj)
                 else:
@@ -409,3 +477,4 @@ class CompanyAdmin(admin.ModelAdmin):
         ('Status', {'fields': ('is_active', 'approval_status', 'rejection_email_sent', 'approval_email_sent', 'rejection_reason')}),
         ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
+

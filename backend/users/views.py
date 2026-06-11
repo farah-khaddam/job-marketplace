@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 from django.utils import timezone
-from .models import EmailVerification
 from django.conf import settings
 from django.core.mail import send_mail
 from django.http import JsonResponse
@@ -245,6 +244,7 @@ def password_reset_confirm(request):
 
 @api_view(['POST'])
 def job_seeker_register(request):
+    EmailVerification.cleanup_expired()
     serializer = JobSeekerOTPRegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -322,7 +322,7 @@ def login_user(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if company.approval_status == 'pending':
+        if company.approval_status == 'pending_admin_approval':
             return Response(
                 {'error': 'Your company account is under review'},
                 status=status.HTTP_403_FORBIDDEN
@@ -340,6 +340,7 @@ def login_user(request):
             {
                 'message': 'Login successful',
                 'user_type': 'company',
+                'token': get_or_create_company_token(company),
                 'data': detail_serializer.data
             },
             status=status.HTTP_200_OK
@@ -354,6 +355,7 @@ def login_user(request):
 
 @api_view(['POST'])
 def company_register(request):
+    EmailVerification.cleanup_expired()
     serializer = CompanyRegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -407,7 +409,7 @@ def verify_google_id_token(id_token):
 
 
 def generate_jwt_tokens(email, user_type, user_id):
-    now = datetime.utcnow()
+    now = timezone.now()
     access_payload = {
         'email': email,
         'user_type': user_type,
@@ -516,7 +518,7 @@ def company_login(request):
         # Verify password
         if check_password(password, company.password):
             
-            if company.approval_status == 'pending':
+            if company.approval_status == 'pending_admin_approval':
                 return Response(
                     {'error': 'Your company account is under review'},
                     status=status.HTTP_403_FORBIDDEN

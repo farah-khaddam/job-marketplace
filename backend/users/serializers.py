@@ -272,7 +272,7 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
             })
         return data
 
-    def create(self, validated_data):
+def create(self, validated_data):
         validated_data.pop('password_confirm')
 
         payload = {
@@ -280,14 +280,20 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
             'password_hash': make_password(validated_data['password']),
             'full_name': validated_data['full_name'],
             'phone_number': validated_data['phone_number'],
+    
         }
+
+        now = timezone.now() # الوقت الحالي متوافق مع نظام الـ Timezone للـ Django
 
         ev, _ = EmailVerification.objects.update_or_create(
             email=validated_data['email'].lower().strip(),
             defaults={
                 'otp_hash': '',
                 'payload': payload,
-                'expires_at': timezone.now() + timedelta(minutes=10),
+                # 👇 الـ OTP ينتهي بعد 10 دقائق من طلب الكود
+                'otp_expires_at': now + timedelta(minutes=10),
+                # 👇 الطلب بالكامل ينتهي بعد 24 ساعة من الحساب لكي تظهر الحالة بدقة في الـ Admin
+                'request_expires_at': now + timedelta(hours=24), 
             }
         )
 
@@ -301,7 +307,6 @@ class JobSeekerRegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError({'email': 'email_send_failed'})
 
         return ev
-
 
 # =========================
 # JOB SEEKER LOGIN
@@ -409,19 +414,47 @@ class CompanyRegisterSerializer(serializers.Serializer):
             })
         return data
 
-    def create(self, validated_data):
+def create(self, validated_data):
         validated_data.pop('password_confirm')
 
-        return Company.objects.create(
-            company_name=validated_data['company_name'],
+        # تجهيز البيانات بانتظار تأكيد الإيميل وموافقة الإدارة
+        payload = {
+            'role': 'company',
+            'company_name': validated_data['company_name'],
+            'phone_number': validated_data['phone_number'],
+            'password_hash': make_password(validated_data['password']),
+            'governorate': validated_data['governorate'],
+            'company_type': validated_data['company_type'],
+            'website_url': validated_data.get('website_url') or "",
+            'description': validated_data['description'],
+            'approval_status': 'pending_admin_approval', # الحساب مؤكد الإيميل ولكن ينتظر الأدمن
+        }
+
+        now = timezone.now()
+
+        # الحفظ في جدول التحقق المؤقت لتخضع لشرط الـ 24 ساعة
+        ev, _ = EmailVerification.objects.update_or_create(
             email=validated_data['email'].lower().strip(),
-            phone_number=validated_data['phone_number'],
-            password=make_password(validated_data['password']),
-            governorate=validated_data['governorate'],
-            company_type=validated_data['company_type'],
-            website_url=validated_data.get('website_url') or "",
-            description=validated_data['description'],
+            defaults={
+                'otp_hash': '',
+                'payload': payload,
+                'user_type': 'company',
+                'otp_expires_at': now + timedelta(minutes=10),      # الرمز ينتهي بعد 10 دقائق
+                'request_expires_at': now + timedelta(hours=24),    # إذا لم تؤكد خلال 24 ساعة تحذف تلقائياً
+            }
         )
+
+        # إرسال كود الـ OTP لإيميل الشركة
+        email_sent = send_otp_email(
+            pending_registration=ev,
+            request=self.context.get('request')
+        )
+
+        if not email_sent:
+            ev.delete()
+            raise serializers.ValidationError({'email': 'email_send_failed'})
+
+        return ev
 
 # =========================
 # COMPANY LOGIN

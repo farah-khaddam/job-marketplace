@@ -156,8 +156,9 @@ def _base_send_otp(email, validated_data, user_type, check_data_changed_fn, payl
                 error.data["message"] = "لقد تجاوزت حد إعادة الإرسال (5 مرات كل 10 دقائق). يرجى المحاولة لاحقاً."
             return error
 
-    if not existing_verification:
-        payload = payload_builder_fn(validated_data, rate_limit_meta)
+    else:
+  
+         payload = payload_builder_fn(validated_data, rate_limit_meta)
 
     otp = generate_otp()
     otp_hash = hash_otp(otp)

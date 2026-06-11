@@ -42,25 +42,46 @@ class EmailVerification(models.Model):
         verbose_name_plural = "Email Verifications"
         ordering = ['-created_at']
 
-    @property
+    
     def is_otp_expired(self):
      if not self.otp_expires_at:
         return True
      return timezone.now() > self.otp_expires_at
+    
+    # ... الحقول القديمة داخل كلاس EmailVerification ...
+
+    
+    def is_expired(self):
+
+        if self.request_expires_at:
+            return timezone.now() > self.request_expires_at
+        
+        # fallback: إذا لم يُحسب وقت انتهاء الطلب سابقاً، احسبه من وقت الإنشاء + 24 ساعة
+        if self.created_at:
+            return timezone.now() > self.created_at + timezone.timedelta(hours=24)
+            
+        return False
 
 
-    @property
+    
     def is_request_expired(self):
      if not self.request_expires_at:
         return True
      return timezone.now() > self.request_expires_at
     
     
+    
     @classmethod
     def cleanup_expired(cls):
-      cls.objects.filter(
-        request_expires_at__lt=timezone.now()
-      ).delete()
+     now = timezone.now()
+     one_day_ago = now - timezone.timedelta(hours=24)
+    
+    # حذف ما انتهى تاريخ صلاحيته الصريح، أو ما مر على إنشائه 24 ساعة وحقله فارغ
+     cls.objects.filter(
+        models.Q(request_expires_at__lt=now) | 
+        models.Q(request_expires_at__isnull=True, created_at__lt=one_day_ago)
+    ).delete()
+    
 
 GOVERNORATE_CHOICES = [
     ('damascus', 'Damascus'),
@@ -145,13 +166,13 @@ class Company(models.Model):
     """
 
     approval_status = models.CharField(
-       max_length=20,
+       max_length=30,
        choices=[
-        ('pending', 'Pending'),
+        ('pending_admin_approval', 'Pending Admin Approval'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ],
-       default='pending'
+       default='pending_admin_approval',
 )
 
     rejection_reason = models.TextField(
