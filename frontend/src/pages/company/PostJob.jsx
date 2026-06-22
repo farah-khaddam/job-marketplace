@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import CompanyLayout from "../../components/company/CompanyLayout"
@@ -24,35 +24,34 @@ const STATUSES = [
   { value: "draft",  label_ar: "مسودة",   label_en: "Draft"  },
 ]
 
-const SPECIALIZATIONS = [
-  { value: "software",   label_ar: "هندسة البرمجيات",   label_en: "Software Engineering" },
-  { value: "design",     label_ar: "تصميم",               label_en: "Design"               },
-  { value: "data",       label_ar: "علوم البيانات",       label_en: "Data Science"         },
-  { value: "marketing",  label_ar: "تسويق",               label_en: "Marketing"            },
-  { value: "finance",    label_ar: "مالية ومحاسبة",       label_en: "Finance"              },
-  { value: "hr",         label_ar: "موارد بشرية",         label_en: "Human Resources"      },
-  { value: "sales",      label_ar: "مبيعات",               label_en: "Sales"                },
-  { value: "operations", label_ar: "عمليات",               label_en: "Operations"           },
-  { value: "other",      label_ar: "أخرى",                 label_en: "Other"                },
-]
-
+// Cities come from backend constants (value → Arabic label)
 const CITIES = [
-  "دمشق", "حلب", "حمص", "اللاذقية", "طرطوس",
-  "حماة", "دير الزور", "الرقة", "السويداء", "درعا",
+  { value: "damascus",      label: "دمشق"       },
+  { value: "aleppo",        label: "حلب"        },
+  { value: "homs",          label: "حمص"        },
+  { value: "latakia",       label: "اللاذقية"   },
+  { value: "tartus",        label: "طرطوس"      },
+  { value: "hama",          label: "حماة"       },
+  { value: "deir_ezzor",    label: "دير الزور"  },
+  { value: "raqqa",         label: "الرقة"      },
+  { value: "suwayda",       label: "السويداء"   },
+  { value: "daraa",         label: "درعا"       },
+  { value: "idlib",         label: "إدلب"       },
+  { value: "hasakah",       label: "الحسكة"     },
+  { value: "quneitra",      label: "القنيطرة"   },
+  { value: "rural_damascus",label: "ريف دمشق"  },
 ]
 
 const INITIAL_FORM = {
   title:           "",
   description:     "",
-  specialization:  "",
+  specialization:  "",   // will send as specialization_id
   city:            "",
-  jobType:         "",
-  workType:        "",
+  employment_type: "",
+  work_mode:       "",
   status:          "open",
-  isActive:        true,
-  viewsCount:      0,
-  expirationDate:  "",
-  createdAt:       new Date().toISOString().slice(0, 10),
+  is_active:       true,
+  expires_at:      "",
 }
 
 
@@ -102,6 +101,32 @@ export default function PostJob() {
   const [form,   setForm]   = useState(INITIAL_FORM)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [specializations, setSpecializations] = useState([])
+  const [specsLoading, setSpecsLoading] = useState(true)
+
+  // ── جلب التخصصات من الباك إند ─────────────────────────
+  useEffect(() => {
+    const fetchSpecs = async () => {
+      console.log("🔵 fetchSpecs: starting...")
+      try {
+        const res = await fetch("/api/jobs/specializations/")
+        console.log("🔵 fetchSpecs: status =", res.status)
+        if (res.ok) {
+          const data = await res.json()
+          console.log("🟢 fetchSpecs: data =", data)
+          setSpecializations(data)
+        } else {
+          const text = await res.text()
+          console.error("🔴 fetchSpecs: error response =", text)
+        }
+      } catch (err) {
+        console.error("🔴 fetchSpecs: network error =", err)
+      } finally {
+        setSpecsLoading(false)
+      }
+    }
+    fetchSpecs()
+  }, [])
 
   // ── helpers ──────────────────────────────────────────
   const set = (key, value) => {
@@ -111,15 +136,15 @@ export default function PostJob() {
 
   const validate = () => {
     const e = {}
-    if (!form.title.trim())        e.title        = t("company.post_job.errors.required")
-    if (!form.description.trim())  e.description  = t("company.post_job.errors.required")
-    if (!form.specialization)      e.specialization = t("company.post_job.errors.required")
-    if (!form.city)                e.city         = t("company.post_job.errors.required")
-    if (!form.jobType)             e.jobType      = t("company.post_job.errors.required")
-    if (!form.workType)            e.workType     = t("company.post_job.errors.required")
-    if (!form.expirationDate)      e.expirationDate = t("company.post_job.errors.required")
-    else if (form.expirationDate <= form.createdAt)
-      e.expirationDate = t("company.post_job.errors.expiration_past")
+    if (!form.title.trim())        e.title           = t("company.post_job.errors.required")
+    if (!form.description.trim())  e.description     = t("company.post_job.errors.required")
+    if (!form.specialization)      e.specialization  = t("company.post_job.errors.required")
+    if (!form.city)                e.city            = t("company.post_job.errors.required")
+    if (!form.employment_type)     e.employment_type = t("company.post_job.errors.required")
+    if (!form.work_mode)           e.work_mode       = t("company.post_job.errors.required")
+    if (!form.expires_at)          e.expires_at      = t("company.post_job.errors.required")
+    else if (form.expires_at <= new Date().toISOString().slice(0, 10))
+      e.expires_at = t("company.post_job.errors.expiration_past")
     return e
   }
 
@@ -128,19 +153,68 @@ export default function PostJob() {
     if (Object.keys(e).length) { setErrors(e); return }
     setLoading(true)
     try {
-      // TODO: replace with actual API call
-      // await api.post("/company/jobs", form)
-      await new Promise(r => setTimeout(r, 800))
-      navigate("/company/dashboard")
+      const token = localStorage.getItem("token")
+      const payload = {
+        title:              form.title.trim(),
+        description:        form.description.trim(),
+        specialization_id:  form.specialization,
+        city:               form.city,
+        employment_type:    form.employment_type,
+        work_mode:          form.work_mode,
+        status:             form.status,
+        is_active:          form.is_active,
+        expires_at:         form.expires_at,
+      }
+      const res = await fetch("/api/jobs/company/jobs/", {
+        method:  "POST",
+        headers: {
+          "Content-Type":   "application/json",
+          "Authorization": `CompanyToken ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        navigate("/company/dashboard")
+        return
+      }
+
+      // ── validation errors من الباك إند ─────────────────
+      if (res.status === 400) {
+        const data = await res.json()
+        const backendErrors = {}
+        // map backend field names → frontend state keys
+        const fieldMap = {
+          specialization_id: "specialization",
+          employment_type:   "employment_type",
+          work_mode:         "work_mode",
+          expires_at:        "expires_at",
+        }
+        Object.entries(data).forEach(([key, msgs]) => {
+          const mapped = fieldMap[key] || key
+          backendErrors[mapped] = Array.isArray(msgs) ? msgs[0] : msgs
+        })
+        setErrors(backendErrors)
+      }
     } catch {
+      // network error — silent for now
+    } finally {
       setLoading(false)
     }
   }
 
+  // للـ JOB_TYPES و WORK_TYPES و STATUSES (label_ar/label_en)
   const labelOf = (arr, val) => {
     const found = arr.find(x => x.value === val)
     if (!found) return "—"
     return isAr ? found.label_ar : found.label_en
+  }
+
+  // للتخصصات من الباك إند (name_ar/name_en)
+  const specLabel = (id) => {
+    const found = specializations.find(s => s.id === Number(id))
+    if (!found) return "—"
+    return isAr ? found.name_ar : found.name_en
   }
 
   // ──────────────────────────────────────────────────────
@@ -204,11 +278,14 @@ export default function PostJob() {
                   className={selectCls + (errors.specialization ? " border-red-300" : "")}
                 >
                   <option value="">{t("company.post_job.placeholders.select")}</option>
-                  {SPECIALIZATIONS.map(s => (
-                    <option key={s.value} value={s.value}>
-                      {isAr ? s.label_ar : s.label_en}
-                    </option>
-                  ))}
+                  {specsLoading
+                    ? <option disabled>{isAr ? "جاري التحميل..." : "Loading..."}</option>
+                    : specializations.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {isAr ? s.name_ar : s.name_en}
+                        </option>
+                      ))
+                  }
                 </select>
                 <svg className="pointer-events-none absolute top-1/2 -translate-y-1/2 end-3 text-gray-400"
                      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -227,7 +304,7 @@ export default function PostJob() {
                 >
                   <option value="">{t("company.post_job.placeholders.select")}</option>
                   {CITIES.map(c => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
                 <svg className="pointer-events-none absolute top-1/2 -translate-y-1/2 end-3 text-gray-400"
@@ -244,15 +321,15 @@ export default function PostJob() {
         <Section title={t("company.post_job.sections.details")}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-            <Field label={t("company.post_job.fields.job_type")} required error={errors.jobType}>
+            <Field label={t("company.post_job.fields.job_type")} required error={errors.employment_type}>
               <div className="flex flex-wrap gap-2">
                 {JOB_TYPES.map(jt => (
                   <button
                     key={jt.value}
                     type="button"
-                    onClick={() => set("jobType", jt.value)}
+                    onClick={() => set("employment_type", jt.value)}
                     className={`px-3.5 py-1.5 text-xs font-medium rounded-xl border transition
-                      ${form.jobType === jt.value
+                      ${form.employment_type === jt.value
                         ? "bg-[#1e3a5f] text-white border-[#1e3a5f]"
                         : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#1e3a5f]/40"}`}
                   >
@@ -262,15 +339,15 @@ export default function PostJob() {
               </div>
             </Field>
 
-            <Field label={t("company.post_job.fields.work_type")} required error={errors.workType}>
+            <Field label={t("company.post_job.fields.work_type")} required error={errors.work_mode}>
               <div className="flex flex-wrap gap-2">
                 {WORK_TYPES.map(wt => (
                   <button
                     key={wt.value}
                     type="button"
-                    onClick={() => set("workType", wt.value)}
+                    onClick={() => set("work_mode", wt.value)}
                     className={`px-3.5 py-1.5 text-xs font-medium rounded-xl border transition
-                      ${form.workType === wt.value
+                      ${form.work_mode === wt.value
                         ? "bg-[#1e3a5f] text-white border-[#1e3a5f]"
                         : "bg-gray-50 text-gray-600 border-gray-200 hover:border-[#1e3a5f]/40"}`}
                   >
@@ -308,20 +385,20 @@ export default function PostJob() {
               </div>
             </Field>
 
-            <Field label={t("company.post_job.fields.expiration_date")} required error={errors.expirationDate}>
+            <Field label={t("company.post_job.fields.expiration_date")} required error={errors.expires_at}>
               <input
                 type="date"
-                value={form.expirationDate}
+                value={form.expires_at}
                 min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
-                onChange={e => set("expirationDate", e.target.value)}
-                className={inputCls + (errors.expirationDate ? " border-red-300" : "")}
+                onChange={e => set("expires_at", e.target.value)}
+                className={inputCls + (errors.expires_at ? " border-red-300" : "")}
               />
             </Field>
 
             <Field label={t("company.post_job.fields.created_at")}>
               <input
                 type="date"
-                value={form.createdAt}
+                value={new Date().toISOString().slice(0, 10)}
                 disabled
                 className={inputCls + " opacity-60 cursor-not-allowed"}
               />
@@ -332,15 +409,15 @@ export default function PostJob() {
           {/* Views count (read-only) + isActive toggle */}
           <div className="flex flex-wrap items-center gap-6 pt-1">
 
-            {/* isActive toggle */}
+            {/* is_active toggle */}
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 role="switch"
-                aria-checked={form.isActive}
-                onClick={() => set("isActive", !form.isActive)}
+                aria-checked={form.is_active}
+                onClick={() => set("is_active", !form.is_active)}
                 className={`relative w-10 h-5.5 rounded-full transition-colors
-                  ${form.isActive ? "bg-[#1e3a5f]" : "bg-gray-200"}`}
+                  ${form.is_active ? "bg-[#1e3a5f]" : "bg-gray-200"}`}
                 style={{ height: "22px", width: "40px" }}
               >
                 <span
@@ -348,7 +425,7 @@ export default function PostJob() {
                   style={{
                     width: "18px",
                     height: "18px",
-                    transform: form.isActive
+                    transform: form.is_active
                       ? (isAr ? "translateX(-18px)" : "translateX(18px)")
                       : "translateX(0)",
                   }}
@@ -357,10 +434,10 @@ export default function PostJob() {
               <span className="text-sm text-gray-700">
                 {t("company.post_job.fields.is_active")}
                 <span className={`ms-1.5 text-xs font-medium px-2 py-0.5 rounded-full border
-                  ${form.isActive
+                  ${form.is_active
                     ? "bg-green-50 text-green-700 border-green-100"
                     : "bg-gray-50 text-gray-500 border-gray-200"}`}>
-                  {form.isActive
+                  {form.is_active
                     ? t("company.post_job.active")
                     : t("company.post_job.inactive")}
                 </span>
@@ -376,7 +453,7 @@ export default function PostJob() {
               </svg>
               <span>
                 {t("company.post_job.fields.views_count")}:
-                <span className="ms-1 font-medium text-gray-700">{form.viewsCount.toLocaleString()}</span>
+                <span className="ms-1 font-medium text-gray-700">0</span>
               </span>
             </div>
 
@@ -384,7 +461,7 @@ export default function PostJob() {
         </Section>
 
         {/* ===== Preview strip ===== */}
-        {(form.title || form.city || form.jobType || form.workType || form.status) && (
+        {(form.title || form.city || form.employment_type || form.work_mode || form.status) && (
           <div className="bg-white border border-gray-100 rounded-2xl px-6 py-4">
             <p className="text-xs text-gray-400 mb-3">{t("company.post_job.preview_label")}</p>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -393,19 +470,19 @@ export default function PostJob() {
                   {form.title || t("company.post_job.placeholders.title")}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5 flex flex-wrap gap-x-3">
-                  {form.city && <span>{form.city}</span>}
-                  {form.specialization && <span>{labelOf(SPECIALIZATIONS, form.specialization)}</span>}
+                  {form.city && <span>{CITIES.find(c => c.value === form.city)?.label}</span>}
+                  {form.specialization && <span>{specLabel(form.specialization)}</span>}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {form.jobType && (
+                {form.employment_type && (
                   <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                    {labelOf(JOB_TYPES, form.jobType)}
+                    {labelOf(JOB_TYPES, form.employment_type)}
                   </span>
                 )}
-                {form.workType && (
+                {form.work_mode && (
                   <span className="text-xs px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
-                    {labelOf(WORK_TYPES, form.workType)}
+                    {labelOf(WORK_TYPES, form.work_mode)}
                   </span>
                 )}
                 {form.status && (

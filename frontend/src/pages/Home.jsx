@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Navbar from "../components/Navbar"
 
 const CATEGORIES = [
@@ -12,11 +12,8 @@ const CATEGORIES = [
   { key: "finance", ar: "مال وأعمال", en: "Finance & Business" },
 ]
 
-const MOCK_JOBS = [
-  { id: 1, title_ar: "مطور Frontend", title_en: "Frontend Developer", company_ar: "التقنية المتقدمة", company_en: "Advanced Tech", location_ar: "دمشق", location_en: "Damascus", type_ar: "دوام كامل", type_en: "Full Time", salary: "$800 - $1,200", tags: ["React", "Tailwind", "JS"], days_ar: "منذ يومين", days_en: "2 days ago", badge: "blue" },
-  { id: 2, title_ar: "مصمم UI/UX", title_en: "UI/UX Designer", company_ar: "هلال للحلول", company_en: "Hilal Solutions", location_ar: "حلب", location_en: "Aleppo", type_ar: "عن بُعد", type_en: "Remote", salary: "$600 - $900", tags: ["Figma", "Adobe XD"], days_ar: "منذ 3 أيام", days_en: "3 days ago", badge: "green" },
-  { id: 3, title_ar: "محاسب مالي", title_en: "Financial Accountant", company_ar: "نور للاستثمار", company_en: "Noor Investment", location_ar: "دمشق", location_en: "Damascus", type_ar: "دوام جزئي", type_en: "Part Time", salary: "$400 - $600", tags: ["Excel", "محاسبة"], days_ar: "منذ 5 أيام", days_en: "5 days ago", badge: "amber" },
-]
+
+
 
 const FEATURED_COMPANIES = [
   { id: 1, name_ar: "التقنية المتقدمة", name_en: "Advanced Tech", industry_ar: "تقنية المعلومات", industry_en: "Information Technology", jobs_ar: "12 وظيفة", jobs_en: "12 Jobs", logo: "💻", color: "bg-blue-50" },
@@ -27,11 +24,8 @@ const FEATURED_COMPANIES = [
   { id: 6, name_ar: "فجر التعليم", name_en: "Fajr Education", industry_ar: "تعليم وتدريب", industry_en: "Education & Training", jobs_ar: "6 وظائف", jobs_en: "6 Jobs", logo: "📚", color: "bg-teal-50" },
 ]
 
-const BADGE_STYLES = {
-  blue: "bg-blue-50 text-blue-800",
-  green: "bg-green-50 text-green-800",
-  amber: "bg-amber-50 text-amber-800",
-}
+
+
 
 export default function Home() {
   const { t, i18n } = useTranslation()
@@ -41,6 +35,25 @@ export default function Home() {
   const isLoggedIn = !!localStorage.getItem("token")
   const [search, setSearch] = useState("")
   const [governorate, setGovernorate] = useState("")
+  const [jobs, setJobs] = useState([])
+  const [jobsLoading, setJobsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await fetch("/api/jobs/")
+        if (res.ok) {
+          const data = await res.json()
+          setJobs(data)
+        }
+      } catch (err) {
+        console.error("fetchJobs error:", err)
+      } finally {
+        setJobsLoading(false)
+      }
+    }
+    fetchJobs()
+  }, [])
 
   const handleSearch = () => {
     navigate(`/jobs?search=${search}&governorate=${governorate}`)
@@ -116,13 +129,13 @@ export default function Home() {
                 <span className="text-sm text-blue-600 cursor-pointer">{t("home.see_all")}</span>
               </div>
               <div className="flex flex-col gap-3">
-                {MOCK_JOBS.slice(0, 2).map(job => (
-                  <div key={job.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:border-blue-500 transition">
+                {jobs.slice(0, 2).map(job => (
+                  <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:border-blue-500 transition">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{isAr ? job.title_ar : job.title_en}</p>
-                      <p className="text-xs text-gray-500">{isAr ? job.company_ar : job.company_en} · {isAr ? job.location_ar : job.location_en}</p>
+                      <p className="text-sm font-medium text-gray-900">{job.title}</p>
+                      <p className="text-xs text-gray-500">{job.company_name} · {job.city_label}</p>
                     </div>
-                    <span className="text-sm font-medium text-blue-600">{job.salary}</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">{job.employment_type_label}</span>
                   </div>
                 ))}
               </div>
@@ -135,7 +148,7 @@ export default function Home() {
                 <span className="text-sm text-blue-600 cursor-pointer">{t("home.see_all")}</span>
               </div>
               <div className="flex flex-col gap-3">
-                {MOCK_JOBS.slice(0, 2).map(job => (
+                {jobs.slice(0, 2).map(job => ( 
                   <div key={job.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{isAr ? job.title_ar : job.title_en}</p>
@@ -180,35 +193,66 @@ export default function Home() {
             {t("home.see_all")} ←
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MOCK_JOBS.map(job => (
-            <div
-              key={job.id}
-              onClick={() => navigate(`/jobs/${job.id}`)}
-              className="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-800 text-xs font-medium">
-                  {(isAr ? job.company_ar : job.company_en).slice(0, 2)}
+
+        {jobsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-gray-100" />
+                  <div className="w-20 h-6 rounded-full bg-gray-100" />
                 </div>
-                <span className={`text-xs px-3 py-1 rounded-full ${BADGE_STYLES[job.badge]}`}>
-                  {isAr ? job.type_ar : job.type_en}
-                </span>
+                <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
+                <div className="h-px bg-gray-50 mb-3" />
+                <div className="h-3 bg-gray-100 rounded w-1/3" />
               </div>
-              <p className="text-sm font-medium text-gray-900 mb-1">{isAr ? job.title_ar : job.title_en}</p>
-              <p className="text-xs text-gray-500 mb-3">{isAr ? job.company_ar : job.company_en} · {isAr ? job.location_ar : job.location_en}</p>
-              <div className="flex gap-2 flex-wrap mb-3">
-                {job.tags.map(tag => (
-                  <span key={tag} className="text-xs px-2 py-1 bg-gray-50 text-gray-500 rounded-md">{tag}</span>
-                ))}
+            ))}
+          </div>
+        ) : jobs.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-10">{t("home.no_jobs")}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {jobs.slice(0, 6).map(job => (
+              <div
+                key={job.id}
+                onClick={() => navigate(`/jobs/${job.id}`)}
+                className="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-800 text-xs font-medium">
+                    {job.company_name?.slice(0, 2)}
+                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-800">
+                    {job.employment_type_label}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-gray-900 mb-1">{job.title}</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  {job.company_name} · {job.city_label}
+                </p>
+                <div className="flex gap-2 flex-wrap mb-3">
+                  <span className="text-xs px-2 py-1 bg-gray-50 text-gray-500 rounded-md">
+                    {job.work_mode_label}
+                  </span>
+                  {job.specialization && (
+                    <span className="text-xs px-2 py-1 bg-gray-50 text-gray-500 rounded-md">
+                      {isAr ? job.specialization.name_ar : job.specialization.name_en}
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center pt-3 border-t border-gray-50">
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700">
+                    {job.status_label}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(job.created_at).toLocaleDateString(isAr ? "ar-SY" : "en-US")}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center pt-3 border-t border-gray-50">
-                <span className="text-sm font-medium text-blue-600">{job.salary}</span>
-                <span className="text-xs text-gray-400">{isAr ? job.days_ar : job.days_en}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ===== أبرز الشركات ===== */}
