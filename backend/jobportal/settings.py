@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'dj_rest_auth',
     'dj_rest_auth.registration',
     'django_extensions',
+    "seeker_profiles",
 ]
 
 SITE_ID = 1
@@ -77,7 +78,7 @@ DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 DATABASES = {
     'default': dj_database_url.config(
         default=DATABASE_URL,
-        conn_max_age=600,
+        conn_max_age=0,
         ssl_require=DATABASE_URL.startswith(('postgres', 'postgresql')),
     )
 }

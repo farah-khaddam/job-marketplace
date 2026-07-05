@@ -1,4 +1,5 @@
 import logging
+from seeker_profiles.services.job_seeker_auth_service import get_or_create_job_seeker_token
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.conf import settings
@@ -29,11 +30,13 @@ from .services.otp_service import (
     send_company_otp,
 )
 
-# --- تم الاحتفاظ بالمستوردات من كلا الفرعين هنا ---
-import jwt
+
+
+
+
 import requests
 from jobs.services.company_auth_service import get_or_create_company_token
-# --------------------------------------------------
+
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +304,7 @@ def login_user(request):
                 {
                     'message': 'Login successful',
                     'user_type': 'job_seeker',
+                    'token': get_or_create_job_seeker_token(job_seeker),
                     'data': detail_serializer.data
                 },
                 status=status.HTTP_200_OK
@@ -408,36 +412,6 @@ def verify_google_id_token(id_token):
     return token_info
 
 
-def generate_jwt_tokens(email, user_type, user_id):
-    now = timezone.now()
-    access_payload = {
-        'email': email,
-        'user_type': user_type,
-        'user_id': user_id,
-        'token_type': 'access',
-        'iat': int(now.timestamp()),
-        'exp': int((now + timedelta(minutes=15)).timestamp()),
-    }
-    refresh_payload = {
-        'email': email,
-        'user_type': user_type,
-        'user_id': user_id,
-        'token_type': 'refresh',
-        'iat': int(now.timestamp()),
-        'exp': int((now + timedelta(days=7)).timestamp()),
-    }
-
-    access_token = jwt.encode(access_payload, settings.SECRET_KEY, algorithm='HS256')
-    refresh_token = jwt.encode(refresh_payload, settings.SECRET_KEY, algorithm='HS256')
-
-    if isinstance(access_token, bytes):
-        access_token = access_token.decode('utf-8')
-    if isinstance(refresh_token, bytes):
-        refresh_token = refresh_token.decode('utf-8')
-
-    return access_token, refresh_token
-
-
 
 @api_view(['POST'])
 def google_login(request):
@@ -460,33 +434,48 @@ def google_login(request):
     email = token_info['email'].lower().strip()
     job_seeker = JobSeeker.objects.filter(email__iexact=email).first()
     company = None if job_seeker else Company.objects.filter(email__iexact=email).first()
-    user = job_seeker or company
 
-    if not user:
+    if not job_seeker and not company:
         return Response(
-            {
-                'error': 'User not found. Please create an account first.'
-            },
+            {'error': 'User not found. Please create an account first.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    user_type = 'job_seeker' if job_seeker else 'company'
-    access_token, refresh_token = generate_jwt_tokens(
-        email=user.email,
-        user_type=user_type,
-        user_id=user.id
+    if job_seeker:
+        detail_serializer = JobSeekerDetailSerializer(job_seeker)
+        return Response(
+            {
+                'message': 'Login successful',
+                'user_type': 'job_seeker',
+                'token': get_or_create_job_seeker_token(job_seeker),
+                'data': detail_serializer.data,
+            },
+            status=status.HTTP_200_OK
+        )
+
+    # company
+    if company.approval_status == 'pending_admin_approval':
+        return Response(
+            {'error': 'Your company account is under review'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if company.approval_status == 'rejected':
+        return Response(
+            {'error': 'Your company account has been rejected'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    detail_serializer = CompanyDetailSerializer(company)
+    return Response(
+        {
+            'message': 'Login successful',
+            'user_type': 'company',
+            'token': get_or_create_company_token(company),
+            'data': detail_serializer.data,
+        },
+        status=status.HTTP_200_OK
     )
-
-    response_data = {
-        'access_token': access_token,
-        'refresh_token': refresh_token,
-        'user_type': user_type,
-        'user': user,
-    }
-
-    response_serializer = GoogleLoginResponseSerializer(response_data)
-    return Response(response_serializer.data, status=status.HTTP_200_OK)
-
 
 @api_view(['POST'])
 def company_login(request):

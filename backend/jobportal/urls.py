@@ -17,10 +17,14 @@ urlpatterns = [
         PasswordResetConfirmView.as_view(),
         name='password_reset_confirm'
     ),
-
     # allauth (needed for social login / email confirmation)
     path('accounts/', include('allauth.urls')),
+     path("api/", include("seeker_profiles.urls")),
 
     # Catch-all 404 — must be LAST
     re_path(r'^.*$', api_404_handler),
+
+
+   
+
 ]

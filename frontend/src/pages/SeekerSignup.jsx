@@ -99,19 +99,28 @@ const handleSubmit = async (e) => {
         body: JSON.stringify({ full_name: form.fullName, email: form.email, phone_number: `${form.phoneCountryCode}${form.phone}`, password: form.password, password_confirm: form.confirmPassword }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        if (data?.email) {
-          const emailErr = Array.isArray(data.email) ? data.email[0] : data.email
-          setFieldErrors(p => ({ ...p, email: t(`seeker_signup.${emailErr}`) }))
-        } else if (data?.phone_number) {
-          const phoneErr = Array.isArray(data.phone_number) ? data.phone_number[0] : data.phone_number
-          setFieldErrors(p => ({ ...p, phone: t(`seeker_signup.${phoneErr}`) }))
-        } else {
-          setError(resolveApiError(data, "seeker_signup.error_required"))
-        }
-        return
-      }
-      setCooldown(60); setStep(STEPS.OTP)
+if (!res.ok) {
+  const apiFieldMap = {
+    full_name:        "fullName",
+    email:            "email",
+    phone_number:     "phone",
+    password:         "password",
+    password_confirm: "confirmPassword",
+  }
+  const newErrors = {}
+  let generalError = ""
+
+  Object.entries(data).forEach(([key, val]) => {
+    const msg = Array.isArray(val) ? val[0] : val
+    const fk = apiFieldMap[key]
+    if (fk) newErrors[fk] = t(`seeker_signup.${msg}`)
+    else generalError = typeof msg === "string" ? msg : JSON.stringify(msg)
+  })
+
+  setFieldErrors(p => ({ ...p, ...newErrors }))
+  if (generalError) setError(generalError)
+  return
+}
     } catch { setError(t("seeker_signup.error_network")) }
     finally { setLoading(false) }
   }
