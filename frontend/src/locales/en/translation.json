@@ -350,5 +350,18 @@
     "results_for": "results for",
     "no_results": "No results found",
     "no_results_sub": "Try changing your filters or search term"
-  }
+  },
+  "job_details": {
+  "back": "Back",
+  "back_to_jobs": "Back to all jobs",
+  "not_found": "Job not found",
+  "apply_btn": "Apply for this job",
+  "apply_soon": "Apply feature coming soon",
+  "description_title": "Job Description",
+  "company_title": "About the Company",
+  "quick_facts": "Quick Facts",
+  "posted_on": "Posted on",
+  "expires_on": "Expires on",
+  "views": "Views"
+}
 }

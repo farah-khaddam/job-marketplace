@@ -48,7 +48,7 @@ function handlePostLoginRedirect(data) {
       const data = await res.json()
 
       if (res.ok) {
-        localStorage.setItem("token", data.key)
+        localStorage.setItem("token", data.token)
         // Redirect based on role if backend provided `user_type`
         handlePostLoginRedirect(data)
       } else {
@@ -109,10 +109,16 @@ const handleGoogleLogin = async (response) => {
     callback: handleGoogleLogin,
   });
 
+  const googleBtn = document.getElementById("googleBtn");
+
+if (googleBtn) {
+  googleBtn.innerHTML = "";
+
   window.google.accounts.id.renderButton(
-    document.getElementById("googleBtn"),
+    googleBtn,
     { theme: "outline", size: "large" }
   );
+}
 }, []);
 
 

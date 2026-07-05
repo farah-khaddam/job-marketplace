@@ -34,33 +34,10 @@ export default function SeekerSignup() {
 
   const updateFieldError = (field, msg) => setFieldErrors((p) => ({ ...p, [field]: msg }))
 
-  const handleFullNameChange = (v) => {
-    const s = sanitizeFullName(v)
-    setForm((p) => ({ ...p, fullName: s }))
+  const handleChange = (field, value) => {
+    setForm(p => ({ ...p, [field]: value }))
+    if (fieldErrors[field]) setFieldErrors(p => ({ ...p, [field]: "" }))
     setError("")
-    updateFieldError("fullName", v !== s ? t("seeker_signup.error_full_name_invalid") : "")
-  }
-  const handleEmailChange = (v) => {
-    setForm((p) => ({ ...p, email: v }))
-    setError("")
-    updateFieldError("email", v && !isEmailFormatValid(v) ? t("seeker_signup.error_email_format") : "")
-  }
-  const handlePhoneChange = (v) => {
-    const d = v.replace(/\D/g, "")
-    setForm((p) => ({ ...p, phone: sanitizePhoneNumber(v) }))
-    setError("")
-    updateFieldError("phone", d && (d.length < 9 || d.length > 10) ? t("seeker_signup.error_phone_length_range") : "")
-  }
-  const handlePasswordChange = (v) => {
-    setForm((p) => ({ ...p, password: v }))
-    setError("")
-    updateFieldError("password", v && !isPasswordLengthValid(v) ? t("seeker_signup.error_password_length") : "")
-    updateFieldError("confirmPassword", form.confirmPassword && !doPasswordsMatch(v, form.confirmPassword) ? t("seeker_signup.error_password_match") : "")
-  }
-  const handleConfirmPasswordChange = (v) => {
-    setForm((p) => ({ ...p, confirmPassword: v }))
-    setError("")
-    updateFieldError("confirmPassword", v && !doPasswordsMatch(form.password, v) ? t("seeker_signup.error_password_match") : "")
   }
 
   const handleOtpChange = (val, idx) => {
@@ -284,16 +261,16 @@ if (!res.ok) {
             <div>
               <label className={labelCls}>{t("seeker_signup.full_name")}</label>
               <input type="text" required placeholder={t("seeker_signup.full_name_placeholder")}
-                value={form.fullName} onChange={(e) => handleFullNameChange(e.target.value)}
+                value={form.fullName} onChange={(e) => handleChange("fullName", e.target.value)}
                 className={inputCls(!!fieldErrors.fullName)} />
               {fieldErrors.fullName && <p className="text-red-500 text-xs mt-1">{fieldErrors.fullName}</p>}
             </div>
 
             {/* الإيميل */}
             <div>
-              <label className={labelCls}>{t("seeker_signup.email")}</label>
+              <label className={labelCls} style={{textAlign:"start", display:"block"}}>{t("seeker_signup.email")}</label>
               <input type="email" required placeholder="example@email.com"
-                value={form.email} onChange={(e) => handleEmailChange(e.target.value)}
+                value={form.email} onChange={(e) => handleChange("email", e.target.value)}
                 className={inputCls(!!fieldErrors.email)} />
               {fieldErrors.email && <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>}
             </div>
@@ -308,7 +285,7 @@ if (!res.ok) {
                     className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm bg-white/60 focus:outline-none focus:border-blue-500 transition" />
                 </div>
                 <input type="tel" required placeholder="9X XXX XXXX"
-                  value={form.phone} onChange={(e) => handlePhoneChange(e.target.value)}
+                  value={form.phone} onChange={(e) => handleChange("phone", e.target.value)}
                   className={`flex-1 ${inputCls(!!fieldErrors.phone)}`} />
               </div>
               {fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
@@ -319,7 +296,7 @@ if (!res.ok) {
               <label className={labelCls}>{t("seeker_signup.password")}</label>
               <div className="relative">
                 <input type={showPassword ? "text" : "password"} required placeholder="••••••••"
-                  value={form.password} onChange={(e) => handlePasswordChange(e.target.value)}
+                  value={form.password} onChange={(e) => handleChange("password", e.target.value)}
                   className={inputCls(!!fieldErrors.password)} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${dir === "rtl" ? "left-3" : "right-3"}`}>
@@ -334,7 +311,7 @@ if (!res.ok) {
               <label className={labelCls}>{t("seeker_signup.confirm_password")}</label>
               <div className="relative">
                 <input type={showConfirm ? "text" : "password"} required placeholder="••••••••"
-                  value={form.confirmPassword} onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                  value={form.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)}
                   className={inputCls(!!fieldErrors.confirmPassword)} />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
                   className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 ${dir === "rtl" ? "left-3" : "right-3"}`}>
