@@ -24,10 +24,8 @@ export const uploadCV = (file, token) => {
   const formData = new FormData();
   formData.append("cv", file);
   return api.post("profile/cv/", formData, {
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "multipart/form-data",
-    },
+    headers: authHeaders(token),
+    // ما منحط Content-Type يدوياً هون - axios بيضيفه لحاله مع الـ boundary الصحيح لـ multipart
   });
 };
 

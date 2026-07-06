@@ -287,16 +287,18 @@ export default function SeekerProfile() {
     if (!file) return
 
     if (file.type !== "application/pdf") {
-      setCvError("Only PDF allowed")
+      setCvError(t("seeker.profile.cv.pdf_only") || "Only PDF allowed")
       return
     }
 
     try {
-      setCvFile(file)
       const token = localStorage.getItem("token")
       await uploadCV(file, token)
+      // منحط الملف بالـ state بس بعد ما نتأكد إنو الرفع نجح فعلياً بالباك إند
+      setCvFile(file)
     } catch (err) {
-      console.log(err)
+      console.log("Error uploading CV:", err)
+      setCvError(t("seeker.profile.cv.upload_failed") || "فشل رفع الملف، حاولي مرة تانية")
     }
   }
 
