@@ -1,6 +1,13 @@
 import { useState, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+import { useEffect } from "react"
+import {
+  getProfile, updateProfile, uploadCV,
+  createSkill, deleteSkill,
+  createExperience, updateExperience, deleteExperience,
+  createEducation, updateEducation, deleteEducation,
+} from "../../api/seekerProfile"
 
 // ─── Mock ────────────────────────────────────────────────────────
 const MOCK_USER = {
@@ -183,7 +190,19 @@ export default function SeekerProfile() {
     document.documentElement.dir = next === "ar" ? "rtl" : "ltr"
   }
 
-  const [user,    setUser]   = useState(MOCK_USER)
+  const [user, setUser] = useState({
+    full_name: "",
+    email: "",
+    phone_number: "",
+    governorate: "",
+    bio: "",
+    cv_url: null,
+    skills: [],
+    experience: [],
+    education: [],
+  })
+
+  const [loading, setLoading] = useState(true)
   const [saving,  setSaving] = useState(false)
   const [saved,   setSaved]  = useState(false)
   const [errors,  setErrors] = useState({})
@@ -197,6 +216,27 @@ export default function SeekerProfile() {
   const [expModal, setExpModal] = useState(null)
   const [eduModal, setEduModal] = useState(null)
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        const res = await getProfile(token)
+        setUser(p => ({
+          ...p,
+          ...res.data,
+          skills: res.data.skills || [],
+          experience: res.data.experience || [],
+          education: res.data.education || [],
+        }))
+      } catch (err) {
+        console.log("Error loading profile:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [])
+
   const setField = (k, v) => {
     setUser(p => ({ ...p, [k]: v }))
     setErrors(p => ({ ...p, [k]: "" }))
@@ -204,55 +244,151 @@ export default function SeekerProfile() {
 
   const validate = () => {
     const e = {}
-    if (!user.full_name.trim()) e.full_name   = t("seeker.profile.errors.required")
-    if (!user.email.trim())     e.email       = t("seeker.profile.errors.required")
+    if (!user.full_name?.trim()) e.full_name   = t("seeker.profile.errors.required")
+    if (!user.email?.trim())     e.email       = t("seeker.profile.errors.required")
     if (!user.governorate)      e.governorate = t("seeker.profile.errors.required")
     return e
   }
 
   const handleSave = async () => {
     const e = validate()
-    if (Object.keys(e).length) { setErrors(e); return }
-    setSaving(true)
-    await new Promise(r => setTimeout(r, 900))
-    setSaving(false); setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    if (Object.keys(e).length) {
+      setErrors(e)
+      return
+    }
+
+    try {
+      setSaving(true)
+      const token = localStorage.getItem("token")
+      
+      // هنا نقوم بإرسال حقول الملف الشخصي الأساسية فقط للربط الصحيح مع السيرفر،
+      // حيث أن المهارات والخبرات والتعليم تُدار من خلال الروابط المنفصلة الخاصة بها.
+      const profileData = {
+        full_name: user.full_name,
+        email: user.email,
+        phone_number: user.phone_number,
+        governorate: user.governorate,
+        bio: user.bio
+      }
+
+      await updateProfile(profileData, token)
+
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      console.log(err)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleCvFile = (file) => {
+  const handleCvFile = async (file) => {
     setCvError("")
     if (!file) return
-    if (file.type !== "application/pdf") { setCvError(t("seeker.profile.cv.error_type")); return }
-    if (file.size > 5 * 1024 * 1024)    { setCvError(t("seeker.profile.cv.error_size")); return }
-    setCvFile(file)
+
+    if (file.type !== "application/pdf") {
+      setCvError("Only PDF allowed")
+      return
+    }
+
+    try {
+      setCvFile(file)
+      const token = localStorage.getItem("token")
+      await uploadCV(file, token)
+    } catch (err) {
+      console.log(err)
+    }
   }
 
-  const addSkill = () => {
+  const addSkill = async () => {
     const s = newSkill.trim()
-    if (!s || user.skills.includes(s)) return
-    setUser(p => ({ ...p, skills: [...p.skills, s] }))
-    setNewSkill("")
+    if (!s || user.skills?.some(sk => sk.name === s)) return
+    try {
+      const token = localStorage.getItem("token")
+      const res = await createSkill(s, token)
+      // بنعتمد إنو الباك إند رجّع الكائن الكامل مع id حقيقي؛ إذا شكل الرد مختلف لازم نعدّل هون
+      setUser(p => ({ ...p, skills: [...(p.skills || []), res.data] }))
+      setNewSkill("")
+    } catch (err) {
+      console.log("Error adding skill:", err)
+    }
   }
-  const removeSkill = s => setUser(p => ({ ...p, skills: p.skills.filter(x => x !== s) }))
+  const removeSkill = async (skill) => {
+    try {
+      const token = localStorage.getItem("token")
+      await deleteSkill(skill.id, token)
+      setUser(p => ({ ...p, skills: p.skills.filter(x => x.id !== skill.id) }))
+    } catch (err) {
+      console.log("Error removing skill:", err)
+    }
+  }
 
-  const saveExp = d => {
-    if (d.id) setUser(p => ({ ...p, experience: p.experience.map(e => e.id === d.id ? d : e) }))
-    else      setUser(p => ({ ...p, experience: [...p.experience, { ...d, id: Date.now() }] }))
-    setExpModal(null)
+  const saveExp = async (d) => {
+    try {
+      const token = localStorage.getItem("token")
+      if (d.id) {
+        // تعديل خبرة موجودة فعلياً بالباك إند
+        const res = await updateExperience(d.id, d, token)
+        setUser(p => ({ ...p, experience: p.experience.map(e => e.id === d.id ? res.data : e) }))
+      } else {
+        // إضافة خبرة جديدة - منستنى الـ id الحقيقي من رد السيرفر
+        const res = await createExperience(d, token)
+        setUser(p => ({ ...p, experience: [...p.experience, res.data] }))
+      }
+      setExpModal(null)
+    } catch (err) {
+      console.log("Error saving experience:", err)
+    }
   }
-  const deleteExp = id => setUser(p => ({ ...p, experience: p.experience.filter(e => e.id !== id) }))
+  const deleteExp = async (id) => {
+    try {
+      const token = localStorage.getItem("token")
+      await deleteExperience(id, token)
+      setUser(p => ({ ...p, experience: p.experience.filter(e => e.id !== id) }))
+    } catch (err) {
+      console.log("Error deleting experience:", err)
+    }
+  }
 
-  const saveEdu = d => {
-    if (d.id) setUser(p => ({ ...p, education: p.education.map(e => e.id === d.id ? d : e) }))
-    else      setUser(p => ({ ...p, education: [...p.education, { ...d, id: Date.now() }] }))
-    setEduModal(null)
+  const saveEdu = async (d) => {
+    try {
+      const token = localStorage.getItem("token")
+      if (d.id) {
+        // تعديل تعليم موجود فعلياً بالباك إند
+        const res = await updateEducation(d.id, d, token)
+        setUser(p => ({ ...p, education: p.education.map(e => e.id === d.id ? res.data : e) }))
+      } else {
+        // إضافة تعليم جديد - منستنى الـ id الحقيقي من رد السيرفر
+        const res = await createEducation(d, token)
+        setUser(p => ({ ...p, education: [...p.education, res.data] }))
+      }
+      setEduModal(null)
+    } catch (err) {
+      console.log("Error saving education:", err)
+    }
   }
-  const deleteEdu = id => setUser(p => ({ ...p, education: p.education.filter(e => e.id !== id) }))
+  const deleteEdu = async (id) => {
+    try {
+      const token = localStorage.getItem("token")
+      await deleteEducation(id, token)
+      setUser(p => ({ ...p, education: p.education.filter(e => e.id !== id) }))
+    } catch (err) {
+      console.log("Error deleting education:", err)
+    }
+  }
 
   // completion %
   const fields = [user.full_name, user.email, user.phone_number, user.governorate, user.bio,
-                  cvFile || user.cv_url, user.skills.length, user.experience.length, user.education.length]
+                  cvFile || user.cv_url, user.skills?.length, user.experience?.length, user.education?.length]
   const pct = Math.round((fields.filter(Boolean).length / fields.length) * 100)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white bg-slate-900">
+        <SpinIcon /> <span className="ms-2">Loading...</span>
+      </div>
+    )
+  }
 
   return (
     <div dir={isAr ? "rtl" : "ltr"} className="min-h-screen"
@@ -311,7 +447,7 @@ export default function SeekerProfile() {
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-lg"
                    style={{ background:"linear-gradient(135deg,#3b82f6,#6366f1)" }}>
-                {user.full_name.charAt(0)}
+                {user.full_name ? user.full_name.charAt(0) : "U"}
               </div>
               <div className="absolute -bottom-1 -end-1 w-5 h-5 rounded-full bg-green-400 border-2 border-[#1e3a5f]"/>
             </div>
@@ -329,7 +465,7 @@ export default function SeekerProfile() {
                 )}
                 <span className="text-xs px-2.5 py-1 rounded-full font-medium"
                       style={{ background:"rgba(59,130,246,.25)", color:"#93c5fd" }}>
-                  {user.skills.length} {t("seeker.profile.skills.label")}
+                  {user.skills?.length || 0} {t("seeker.profile.skills.label")}
                 </span>
               </div>
             </div>
@@ -463,8 +599,8 @@ export default function SeekerProfile() {
         {/* ── Skills ── */}
         <Section icon="⚡" title={t("seeker.profile.sections.skills")}>
           <div className="flex flex-wrap gap-2 mb-4 min-h-[2rem]">
-            {user.skills.map(s => <SkillTag key={s} label={s} onRemove={() => removeSkill(s)} />)}
-            {!user.skills.length && (
+            {user.skills?.map(s => <SkillTag key={s.id} label={s.name} onRemove={() => removeSkill(s)} />)}
+            {!user.skills?.length && (
               <p className="text-xs text-slate-400">{t("seeker.profile.skills.empty")}</p>
             )}
           </div>
@@ -494,7 +630,7 @@ export default function SeekerProfile() {
             </button>
           }
         >
-          {!user.experience.length
+          {!user.experience?.length
             ? <p className="text-xs text-slate-400">{t("seeker.profile.experience.empty")}</p>
             : <div className="space-y-3">
                 {user.experience.map(exp => (
@@ -522,7 +658,7 @@ export default function SeekerProfile() {
             </button>
           }
         >
-          {!user.education.length
+          {!user.education?.length
             ? <p className="text-xs text-slate-400">{t("seeker.profile.education.empty")}</p>
             : <div className="space-y-3">
                 {user.education.map(edu => (

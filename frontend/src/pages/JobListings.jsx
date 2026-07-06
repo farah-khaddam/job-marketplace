@@ -1,43 +1,16 @@
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import Navbar from "../components/Navbar"
 
-// ─── Mock Data ────────────────────────────────────────────────────
-const MOCK_JOBS = [
-  { id:1,  title_ar:"مطور Frontend",        title_en:"Frontend Developer",       company_ar:"التقنية المتقدمة",  company_en:"Advanced Tech",      city:"دمشق",      specialization:"software",  jobType:"full_time",  workType:"onsite",  status:"open",  salary:"$800–$1,200", tags:["React","JavaScript","Tailwind"], days_ar:"منذ يومين",   days_en:"2d ago",   views:820 },
-  { id:2,  title_ar:"مصمم UI/UX",           title_en:"UI/UX Designer",           company_ar:"هلال للحلول",       company_en:"Hilal Solutions",     city:"حلب",       specialization:"design",    jobType:"full_time",  workType:"remote",  status:"open",  salary:"$600–$900",   tags:["Figma","Adobe XD","Prototyping"], days_ar:"منذ 3 أيام",  days_en:"3d ago",   views:540 },
-  { id:3,  title_ar:"محاسب مالي",           title_en:"Financial Accountant",     company_ar:"نور للاستثمار",     company_en:"Noor Investment",     city:"دمشق",      specialization:"finance",   jobType:"part_time",  workType:"onsite",  status:"open",  salary:"$400–$600",   tags:["Excel","محاسبة","ERP"],          days_ar:"منذ 5 أيام",  days_en:"5d ago",   views:310 },
-  { id:4,  title_ar:"مطور Backend",         title_en:"Backend Developer",        company_ar:"سيريا ديف",         company_en:"Syria Dev",           city:"اللاذقية",  specialization:"software",  jobType:"full_time",  workType:"hybrid",  status:"open",  salary:"$900–$1,400", tags:["Django","Python","PostgreSQL"],  days_ar:"منذ يوم",     days_en:"1d ago",   views:670 },
-  { id:5,  title_ar:"مدير تسويق",           title_en:"Marketing Manager",        company_ar:"الشام للإعلام",     company_en:"Sham Media",          city:"دمشق",      specialization:"marketing", jobType:"full_time",  workType:"onsite",  status:"open",  salary:"$700–$1,000", tags:["SEO","Social Media","Ads"],      days_ar:"منذ أسبوع",   days_en:"1w ago",   views:420 },
-  { id:6,  title_ar:"مهندس شبكات",          title_en:"Network Engineer",         company_ar:"التقنية المتقدمة",  company_en:"Advanced Tech",       city:"حمص",       specialization:"software",  jobType:"full_time",  workType:"onsite",  status:"open",  salary:"$600–$850",   tags:["Cisco","Linux","Networking"],    days_ar:"منذ 4 أيام",  days_en:"4d ago",   views:290 },
-  { id:7,  title_ar:"معلم لغة إنجليزية",   title_en:"English Teacher",          company_ar:"فجر التعليم",       company_en:"Fajr Education",      city:"حلب",       specialization:"education", jobType:"part_time",  workType:"onsite",  status:"open",  salary:"$300–$500",   tags:["Teaching","IELTS","English"],    days_ar:"منذ 6 أيام",  days_en:"6d ago",   views:195 },
-  { id:8,  title_ar:"طبيب عام",             title_en:"General Physician",        company_ar:"الشام للطب",        company_en:"Sham Medical",        city:"دمشق",      specialization:"health",    jobType:"full_time",  workType:"onsite",  status:"open",  salary:"$800–$1,100", tags:["طب","رعاية صحية"],               days_ar:"منذ 3 أيام",  days_en:"3d ago",   views:380 },
-  { id:9,  title_ar:"مطور Mobile",          title_en:"Mobile Developer",         company_ar:"سيريا ديف",         company_en:"Syria Dev",           city:"دمشق",      specialization:"software",  jobType:"full_time",  workType:"remote",  status:"open",  salary:"$1,000–$1,500",tags:["React Native","Flutter","iOS"], days_ar:"منذ يومين",   days_en:"2d ago",   views:730 },
-  { id:10, title_ar:"أخصائي موارد بشرية",  title_en:"HR Specialist",            company_ar:"نور للاستثمار",     company_en:"Noor Investment",     city:"درعا",      specialization:"hr",        jobType:"full_time",  workType:"onsite",  status:"open",  salary:"$400–$600",   tags:["HR","Recruitment","Training"],   days_ar:"منذ أسبوع",   days_en:"1w ago",   views:210 },
-  { id:11, title_ar:"مصمم جرافيك",          title_en:"Graphic Designer",         company_ar:"هلال للحلول",       company_en:"Hilal Solutions",     city:"اللاذقية",  specialization:"design",    jobType:"contract",   workType:"remote",  status:"open",  salary:"$400–$700",   tags:["Photoshop","Illustrator","Branding"], days_ar:"منذ 5 أيام", days_en:"5d ago", views:340 },
-  { id:12, title_ar:"مندوب مبيعات",         title_en:"Sales Representative",     company_ar:"الشام للإعلام",     company_en:"Sham Media",          city:"حلب",       specialization:"sales",     jobType:"full_time",  workType:"onsite",  status:"open",  salary:"$350–$550",   tags:["مبيعات","تواصل","CRM"],          days_ar:"منذ يومين",   days_en:"2d ago",   views:155 },
-]
-
-const SPECIALIZATIONS = [
-  { value:"",          label_ar:"كل التخصصات",       label_en:"All Specializations" },
-  { value:"software",  label_ar:"هندسة البرمجيات",   label_en:"Software Engineering" },
-  { value:"design",    label_ar:"تصميم",              label_en:"Design" },
-  { value:"marketing", label_ar:"تسويق",              label_en:"Marketing" },
-  { value:"finance",   label_ar:"مالية ومحاسبة",     label_en:"Finance" },
-  { value:"health",    label_ar:"رعاية صحية",         label_en:"Healthcare" },
-  { value:"education", label_ar:"تعليم",              label_en:"Education" },
-  { value:"hr",        label_ar:"موارد بشرية",        label_en:"Human Resources" },
-  { value:"sales",     label_ar:"مبيعات",             label_en:"Sales" },
-]
-
+// ─── Static option lists (match backend enums) ─────────────────────
 const JOB_TYPES = [
-  { value:"",          label_ar:"كل الأنواع",   label_en:"All Types" },
-  { value:"full_time", label_ar:"دوام كامل",    label_en:"Full Time" },
-  { value:"part_time", label_ar:"دوام جزئي",    label_en:"Part Time" },
-  { value:"contract",  label_ar:"عقد مؤقت",     label_en:"Contract" },
-  { value:"internship",label_ar:"تدريب",         label_en:"Internship" },
-  { value:"freelance", label_ar:"عمل حر",        label_en:"Freelance" },
+  { value:"",           label_ar:"كل الأنواع",   label_en:"All Types" },
+  { value:"full_time",  label_ar:"دوام كامل",    label_en:"Full Time" },
+  { value:"part_time",  label_ar:"دوام جزئي",    label_en:"Part Time" },
+  { value:"contract",   label_ar:"عقد مؤقت",     label_en:"Contract" },
+  { value:"internship", label_ar:"تدريب",         label_en:"Internship" },
+  { value:"freelance",  label_ar:"عمل حر",        label_en:"Freelance" },
 ]
 
 const WORK_TYPES = [
@@ -47,7 +20,24 @@ const WORK_TYPES = [
   { value:"hybrid", label_ar:"هجين",          label_en:"Hybrid" },
 ]
 
-const CITIES = ["","دمشق","حلب","حمص","اللاذقية","طرطوس","حماة","دير الزور","الرقة","السويداء","درعا"]
+// نفس المدن المستخدمة بصفحة PostJob (ثوابت الباك إند)
+const CITIES = [
+  { value:"",               label:"كل المدن"    },
+  { value:"damascus",       label:"دمشق"       },
+  { value:"aleppo",         label:"حلب"        },
+  { value:"homs",           label:"حمص"        },
+  { value:"latakia",        label:"اللاذقية"   },
+  { value:"tartus",         label:"طرطوس"      },
+  { value:"hama",           label:"حماة"       },
+  { value:"deir_ezzor",     label:"دير الزور"  },
+  { value:"raqqa",          label:"الرقة"      },
+  { value:"suwayda",        label:"السويداء"   },
+  { value:"daraa",          label:"درعا"       },
+  { value:"idlib",          label:"إدلب"       },
+  { value:"hasakah",        label:"الحسكة"     },
+  { value:"quneitra",       label:"القنيطرة"   },
+  { value:"rural_damascus", label:"ريف دمشق"  },
+]
 
 const SORT_OPTIONS = [
   { value:"newest",  label_ar:"الأحدث",       label_en:"Newest" },
@@ -87,7 +77,7 @@ function FilterPill({ label, active, onClick }) {
   )
 }
 
-function SelectFilter({ value, onChange, options, isAr }) {
+function SelectFilter({ value, onChange, options, isAr, plainLabels }) {
   return (
     <div className="relative">
       <select
@@ -98,7 +88,7 @@ function SelectFilter({ value, onChange, options, isAr }) {
       >
         {options.map(o => (
           <option key={o.value} value={o.value}>
-            {isAr ? o.label_ar : o.label_en}
+            {plainLabels ? o.label : (isAr ? o.label_ar : o.label_en)}
           </option>
         ))}
       </select>
@@ -111,8 +101,8 @@ function SelectFilter({ value, onChange, options, isAr }) {
 }
 
 function JobCard({ job, isAr, onClick }) {
-  const wtStyle = WORK_TYPE_STYLE[job.workType] || {}
-  const jtStyle = JOB_TYPE_STYLE[job.jobType]   || {}
+  const wtStyle = WORK_TYPE_STYLE[job.work_mode]       || {}
+  const jtStyle = JOB_TYPE_STYLE[job.employment_type]   || {}
 
   return (
     <div
@@ -140,62 +130,63 @@ function JobCard({ job, isAr, onClick }) {
           {/* company avatar */}
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
                style={{ background:"linear-gradient(135deg,#1e3a5f,#2d5282)" }}>
-            {(isAr ? job.company_ar : job.company_en).charAt(0)}
+            {job.company_name?.charAt(0)}
           </div>
 
           {/* badges */}
           <div className="flex flex-wrap gap-1.5 justify-end">
             <span className="text-xs px-2.5 py-1 rounded-xl font-semibold border"
                   style={{ background:jtStyle.bg, color:jtStyle.color, borderColor:jtStyle.border }}>
-              {isAr
-                ? JOB_TYPES.find(j=>j.value===job.jobType)?.label_ar
-                : JOB_TYPES.find(j=>j.value===job.jobType)?.label_en}
+              {job.employment_type_label}
             </span>
             <span className="text-xs px-2.5 py-1 rounded-xl font-semibold border"
                   style={{ background:wtStyle.bg, color:wtStyle.color, borderColor:wtStyle.border }}>
-              {isAr
-                ? WORK_TYPES.find(w=>w.value===job.workType)?.label_ar
-                : WORK_TYPES.find(w=>w.value===job.workType)?.label_en}
+              {job.work_mode_label}
             </span>
           </div>
         </div>
 
         {/* Title + company */}
         <h3 className="text-sm font-bold text-slate-800 mb-1 group-hover:text-blue-700 transition-colors">
-          {isAr ? job.title_ar : job.title_en}
+          {job.title}
         </h3>
         <p className="text-xs text-slate-500 mb-1">
-          {isAr ? job.company_ar : job.company_en}
+          {job.company_name}
         </p>
         <div className="flex items-center gap-1 text-xs text-slate-400 mb-3">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
           </svg>
-          {job.city}
+          {job.city_label}
         </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {job.tags.slice(0,3).map(tag => (
-            <span key={tag} className="text-xs px-2 py-1 rounded-lg font-medium"
-                  style={{ background:"#f1f5f9", color:"#64748b" }}>
-              {tag}
-            </span>
-          ))}
-        </div>
+        {/* Tags (optional — only if backend provides them) */}
+        {Array.isArray(job.tags) && job.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {job.tags.slice(0,3).map(tag => (
+              <span key={tag} className="text-xs px-2 py-1 rounded-lg font-medium"
+                    style={{ background:"#f1f5f9", color:"#64748b" }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t"
              style={{ borderColor:"#f1f5f9" }}>
-          <span className="text-sm font-bold" style={{ color:"#1e3a5f" }}>{job.salary}</span>
+          {/* salary (optional — only if backend provides it) */}
+          <span className="text-sm font-bold" style={{ color:"#1e3a5f" }}>
+            {job.salary || ""}
+          </span>
           <div className="flex items-center gap-3 text-xs text-slate-400">
             <span className="flex items-center gap-1">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
-              {job.views}
+              {job.views_count ?? 0}
             </span>
-            <span>{isAr ? job.days_ar : job.days_en}</span>
+            <span>{new Date(job.created_at).toLocaleDateString(isAr ? "ar-SY" : "en-US")}</span>
           </div>
         </div>
       </div>
@@ -218,22 +209,70 @@ export default function JobListings() {
   const [workType,       setWorkType]       = useState("")
   const [sortBy,         setSortBy]         = useState("newest")
 
+  // ── بيانات حقيقية من الباك إند ──
+  const [jobs,            setJobs]            = useState([])
+  const [jobsLoading,     setJobsLoading]     = useState(true)
+  const [specializations, setSpecializations] = useState([])
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      setJobsLoading(true)
+      try {
+        const res = await fetch("/api/jobs/")
+        if (res.ok) {
+          const data = await res.json()
+          setJobs(Array.isArray(data) ? data : data.results || [])
+        }
+      } catch (err) {
+        console.error("fetchJobs error:", err)
+      } finally {
+        setJobsLoading(false)
+      }
+    }
+    const fetchSpecializations = async () => {
+      try {
+        const res = await fetch("/api/jobs/specializations/")
+        if (res.ok) {
+          const data = await res.json()
+          setSpecializations(Array.isArray(data) ? data : data.results || [])
+        }
+      } catch (err) {
+        console.error("fetchSpecializations error:", err)
+      }
+    }
+    fetchJobs()
+    fetchSpecializations()
+  }, [])
+
+  const specializationOptions = useMemo(() => ([
+    { value:"", label_ar:"كل التخصصات", label_en:"All Specializations" },
+    ...specializations.map(s => ({ value:String(s.id), label_ar:s.name_ar, label_en:s.name_en })),
+  ]), [specializations])
+
   const handleSearch = () => setSearch(inputVal.trim())
 
-  // ── filtering + sorting ──
+  // ── filtering + sorting (كله عم يصير من عندنا بالـ frontend) ──
   const filtered = useMemo(() => {
-    let list = [...MOCK_JOBS]
-    if (search)         list = list.filter(j =>
-      (j.title_ar + j.title_en + j.company_ar + j.company_en + j.tags.join(" "))
-        .toLowerCase().includes(search.toLowerCase()))
-    if (specialization) list = list.filter(j => j.specialization === specialization)
+    let list = [...jobs]
+    if (search) {
+      const q = search.toLowerCase()
+      list = list.filter(j =>
+        `${j.title || ""} ${j.company_name || ""}`.toLowerCase().includes(q))
+    }
+    if (specialization) list = list.filter(j => String(j.specialization?.id) === specialization)
     if (city)           list = list.filter(j => j.city === city)
-    if (jobType)        list = list.filter(j => j.jobType === jobType)
-    if (workType)       list = list.filter(j => j.workType === workType)
-    if (sortBy === "views")   list.sort((a,b) => b.views - a.views)
-    else if (sortBy === "oldest") list.reverse()
+    if (jobType)        list = list.filter(j => j.employment_type === jobType)
+    if (workType)       list = list.filter(j => j.work_mode === workType)
+
+    if (sortBy === "views") {
+      list.sort((a,b) => (b.views_count || 0) - (a.views_count || 0))
+    } else if (sortBy === "oldest") {
+      list.sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
+    } else {
+      list.sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+    }
     return list
-  }, [search, specialization, city, jobType, workType, sortBy])
+  }, [jobs, search, specialization, city, jobType, workType, sortBy])
 
   const activeFiltersCount = [specialization, city, jobType, workType].filter(Boolean).length
 
@@ -303,7 +342,7 @@ export default function JobListings() {
 
             {/* Specialization pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap">
-              {SPECIALIZATIONS.map(s => (
+              {specializationOptions.map(s => (
                 <FilterPill
                   key={s.value}
                   label={isAr ? s.label_ar : s.label_en}
@@ -318,8 +357,7 @@ export default function JobListings() {
 
             {/* select filters */}
             <div className="flex items-center gap-2 flex-wrap">
-              <SelectFilter value={city} onChange={setCity} isAr={isAr}
-                options={CITIES.map(c => ({ value:c, label_ar: c||"كل المدن", label_en: c||"All Cities" }))} />
+              <SelectFilter value={city} onChange={setCity} options={CITIES} plainLabels />
               <SelectFilter value={jobType} onChange={setJobType} isAr={isAr} options={JOB_TYPES} />
               <SelectFilter value={workType} onChange={setWorkType} isAr={isAr} options={WORK_TYPES} />
             </div>
@@ -358,7 +396,22 @@ export default function JobListings() {
         </div>
 
         {/* grid */}
-        {filtered.length === 0 ? (
+        {jobsLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="bg-white rounded-2xl border p-5 animate-pulse" style={{ borderColor:"#e8efff" }}>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100" />
+                  <div className="w-20 h-6 rounded-xl bg-gray-100" />
+                </div>
+                <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
+                <div className="h-px bg-gray-50 mb-3" />
+                <div className="h-3 bg-gray-100 rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-5xl mb-4">🔍</div>
             <p className="text-lg font-bold text-slate-600 mb-1">{t("jobs.no_results")}</p>
