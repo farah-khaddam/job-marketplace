@@ -46,7 +46,7 @@ class SeekerProfileSerializer(serializers.ModelSerializer):
         fields = [
             "full_name", "email", "phone_number", "governorate", "bio",
             "cv_url", "profile_picture_url", "skills", "experiences",
-            "completion_percentage",
+            "completion_percentage","education_entries"
         ]
 
     def get_cv_url(self, obj):
@@ -61,7 +61,7 @@ class SeekerProfileSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(obj.profile_picture.url)
      if obj.external_picture_url:
         return obj.external_picture_url
-     return Nonee
+     return None
 
     def validate_full_name(self, value):
         if not value.strip():

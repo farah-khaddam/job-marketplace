@@ -10,7 +10,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status
-
+from seeker_profiles.models import SeekerProfile, generate_gravatar_url  
 from ..models import EmailVerification, JobSeeker, Company
 
 logger = logging.getLogger(__name__)
@@ -250,17 +250,21 @@ def handle_job_seeker_otp_verification(verification, email):
         return Response({'error': 'Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
 
     # الحساب يُنشأ مباشرة بالـ Hash المتوافق مع معايير الأمان والهندسة الداخلية لـ Django
-    JobSeeker.objects.create(
+    job_seeker = JobSeeker.objects.create(
         full_name=payload['full_name'],
         email=email,
         phone_number=payload['phone_number'],
-        password=password_hash, 
+        password=password_hash,
+    )
+    SeekerProfile.objects.create(
+        user=job_seeker,
+        external_picture_url=generate_gravatar_url(email),
     )
     verification.delete()
 
     return Response({'message': 'Email verified and account created successfully'}, status=status.HTTP_201_CREATED)
 
-
+    
 # ==========================================
 # 🏢 COMPANY INTERFACES
 # ==========================================

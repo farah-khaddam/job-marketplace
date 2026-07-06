@@ -5,7 +5,13 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 import secrets
 from users.models import JobSeeker
+import hashlib
 
+
+def generate_gravatar_url(email):
+    """يولّد رابط Gravatar بناءً على الإيميل."""
+    email_hash = hashlib.md5(email.strip().lower().encode('utf-8')).hexdigest()
+    return f"https://www.gravatar.com/avatar/{email_hash}?d=identicon&s=200"
 
 def validate_cv_file(file):
     # نفس منطق الفرونت: PDF فقط + أقصى حجم 5MB
