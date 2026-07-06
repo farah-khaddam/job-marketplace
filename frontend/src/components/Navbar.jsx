@@ -42,7 +42,7 @@ export default function Navbar() {
 
           {isLoggedIn ? (
             <>
-              <Link to="/dashboard" className="text-xs md:text-sm text-gray-500 hover:text-blue-600 transition">
+              <Link to="/seeker/profile" className="text-xs md:text-sm text-gray-500 hover:text-blue-600 transition">
                 {t("navbar.dashboard")}
               </Link>
               <button
@@ -101,7 +101,7 @@ export default function Navbar() {
     {isLoggedIn ? (
       <>
         <Link
-          to="/dashboard"
+          to="/seeker/profile"
           onClick={() => setMenuOpen(false)}
           className="text-sm text-gray-600"
         >

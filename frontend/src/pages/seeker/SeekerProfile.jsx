@@ -1,35 +1,35 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import { useEffect } from "react"
 import {
-  getProfile, updateProfile, uploadCV,
+  getProfile, updateProfile, uploadCV, uploadPicture,
   createSkill, deleteSkill,
   createExperience, updateExperience, deleteExperience,
   createEducation, updateEducation, deleteEducation,
 } from "../../api/seekerProfile"
 
-// ─── Mock ────────────────────────────────────────────────────────
-const MOCK_USER = {
-  full_name:    "أحمد الخطيب",
-  email:        "ahmad@example.com",
-  phone_number: "0991234567",
-  governorate:  "دمشق",
-  bio:          "مطور برمجيات شغوف بالـ Frontend وبناء تجارب مستخدم سلسة.",
-  cv_url:       null,
-  skills:       ["React", "JavaScript", "Tailwind CSS", "Git"],
-  experience: [
-    { id: 1, title: "مطور Frontend", company: "شركة التقنية", from: "2022-01", to: "2024-06", current: false },
-  ],
-  education: [
-    { id: 1, degree: "بكالوريوس هندسة معلوماتية", institution: "جامعة دمشق", year: "2022" },
-  ],
-}
-
 const GOVERNORATES = [
   "دمشق","حلب","حمص","اللاذقية","طرطوس",
   "حماة","دير الزور","الرقة","السويداء","درعا","ريف دمشق","إدلب",
 ]
+
+// الباك إند بيسمي حقول الخبرة date_from / date_to / is_current بدل from / to / current
+// ⚠️ date_from مؤكدة من رسالة الخطأ، أما date_to و is_current افتراض لسا لازم يتأكد بعد أول تجربة ناجحة
+const expToApi = (d) => ({
+  title: d.title,
+  company: d.company,
+  date_from: d.from,
+  date_to: d.current ? null : d.to,
+  is_current: d.current,
+})
+const expFromApi = (e) => ({
+  id: e.id,
+  title: e.title,
+  company: e.company,
+  from: e.date_from,
+  to: e.date_to,
+  current: e.is_current,
+})
 
 // ─── Design tokens ───────────────────────────────────────────────
 const navy   = "#0f2544"
@@ -95,6 +95,12 @@ const CheckIcon = () => (
     <polyline points="20 6 9 17 4 12"/>
   </svg>
 )
+const CameraIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+)
 
 // ─── Field ───────────────────────────────────────────────────────
 function Field({ label, required, error, children }) {
@@ -109,20 +115,13 @@ function Field({ label, required, error, children }) {
   )
 }
 
-// ─── Section card ────────────────────────────────────────────────
-function Section({ icon, title, action, children }) {
+// ─── Panel (lightweight card - the tab bar already carries the title) ──
+function Panel({ children, action }) {
   return (
     <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/60 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100/80">
-        <div className="flex items-center gap-2.5">
-          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
-                style={{ background: "linear-gradient(135deg,#e8f0fe,#c7d7fd)" }}>
-            {icon}
-          </span>
-          <h2 className="text-sm font-bold text-slate-700">{title}</h2>
-        </div>
-        {action}
-      </div>
+      {action && (
+        <div className="flex justify-end px-6 pt-5">{action}</div>
+      )}
       <div className="px-6 py-5">{children}</div>
     </div>
   )
@@ -197,6 +196,7 @@ export default function SeekerProfile() {
     governorate: "",
     bio: "",
     cv_url: null,
+    picture: null,
     skills: [],
     experience: [],
     education: [],
@@ -207,10 +207,16 @@ export default function SeekerProfile() {
   const [saved,   setSaved]  = useState(false)
   const [errors,  setErrors] = useState({})
 
+  const [activeTab, setActiveTab] = useState("personal")
+
   const fileRef              = useRef()
   const [cvFile,  setCvFile] = useState(null)
   const [cvDrag,  setCvDrag] = useState(false)
   const [cvError, setCvError]= useState("")
+
+  const avatarRef = useRef()
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState("")
 
   const [newSkill, setNewSkill] = useState("")
   const [expModal, setExpModal] = useState(null)
@@ -225,7 +231,7 @@ export default function SeekerProfile() {
           ...p,
           ...res.data,
           skills: res.data.skills || [],
-          experience: res.data.experience || [],
+          experience: (res.data.experience || []).map(expFromApi),
           education: res.data.education || [],
         }))
       } catch (err) {
@@ -260,9 +266,7 @@ export default function SeekerProfile() {
     try {
       setSaving(true)
       const token = localStorage.getItem("token")
-      
-      // هنا نقوم بإرسال حقول الملف الشخصي الأساسية فقط للربط الصحيح مع السيرفر،
-      // حيث أن المهارات والخبرات والتعليم تُدار من خلال الروابط المنفصلة الخاصة بها.
+
       const profileData = {
         full_name: user.full_name,
         email: user.email,
@@ -287,7 +291,7 @@ export default function SeekerProfile() {
     if (!file) return
 
     if (file.type !== "application/pdf") {
-      setCvError(t("seeker.profile.cv.pdf_only") || "Only PDF allowed")
+      setCvError(t("seeker.profile.cv.pdf_only") || "الملف لازم يكون PDF")
       return
     }
 
@@ -302,13 +306,39 @@ export default function SeekerProfile() {
     }
   }
 
+  const handleAvatarFile = async (file) => {
+    setAvatarError("")
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      setAvatarError(t("seeker.profile.avatar.image_only") || "الصورة لازم تكون JPG أو PNG")
+      return
+    }
+
+    const previewUrl = URL.createObjectURL(file)
+    const prevPicture = user.picture
+    setUser(p => ({ ...p, picture: previewUrl })) // معاينة فورية بدون انتظار
+
+    try {
+      setAvatarUploading(true)
+      const token = localStorage.getItem("token")
+      const res = await uploadPicture(file, token)
+      // إذا الباك إند رجّع رابط الصورة الحقيقي منستخدمه، وإلا منبقى على المعاينة المحلية
+      setUser(p => ({ ...p, picture: res.data?.profile_picture || res.data?.picture || res.data?.picture_url || previewUrl }))
+    } catch (err) {
+      console.log("Error uploading picture:", err)
+      setAvatarError(t("seeker.profile.avatar.upload_failed") || "فشل رفع الصورة، حاولي مرة تانية")
+      setUser(p => ({ ...p, picture: prevPicture }))
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
   const addSkill = async () => {
     const s = newSkill.trim()
     if (!s || user.skills?.some(sk => sk.name === s)) return
     try {
       const token = localStorage.getItem("token")
       const res = await createSkill(s, token)
-      // بنعتمد إنو الباك إند رجّع الكائن الكامل مع id حقيقي؛ إذا شكل الرد مختلف لازم نعدّل هون
       setUser(p => ({ ...p, skills: [...(p.skills || []), res.data] }))
       setNewSkill("")
     } catch (err) {
@@ -328,14 +358,13 @@ export default function SeekerProfile() {
   const saveExp = async (d) => {
     try {
       const token = localStorage.getItem("token")
+      const payload = expToApi(d)
       if (d.id) {
-        // تعديل خبرة موجودة فعلياً بالباك إند
-        const res = await updateExperience(d.id, d, token)
-        setUser(p => ({ ...p, experience: p.experience.map(e => e.id === d.id ? res.data : e) }))
+        const res = await updateExperience(d.id, payload, token)
+        setUser(p => ({ ...p, experience: p.experience.map(e => e.id === d.id ? expFromApi(res.data) : e) }))
       } else {
-        // إضافة خبرة جديدة - منستنى الـ id الحقيقي من رد السيرفر
-        const res = await createExperience(d, token)
-        setUser(p => ({ ...p, experience: [...p.experience, res.data] }))
+        const res = await createExperience(payload, token)
+        setUser(p => ({ ...p, experience: [...p.experience, expFromApi(res.data)] }))
       }
       setExpModal(null)
     } catch (err) {
@@ -355,13 +384,12 @@ export default function SeekerProfile() {
   const saveEdu = async (d) => {
     try {
       const token = localStorage.getItem("token")
+      const payload = { ...d, year: d.year ? parseInt(d.year, 10) : null }
       if (d.id) {
-        // تعديل تعليم موجود فعلياً بالباك إند
-        const res = await updateEducation(d.id, d, token)
+        const res = await updateEducation(d.id, payload, token)
         setUser(p => ({ ...p, education: p.education.map(e => e.id === d.id ? res.data : e) }))
       } else {
-        // إضافة تعليم جديد - منستنى الـ id الحقيقي من رد السيرفر
-        const res = await createEducation(d, token)
+        const res = await createEducation(payload, token)
         setUser(p => ({ ...p, education: [...p.education, res.data] }))
       }
       setEduModal(null)
@@ -381,8 +409,16 @@ export default function SeekerProfile() {
 
   // completion %
   const fields = [user.full_name, user.email, user.phone_number, user.governorate, user.bio,
-                  cvFile || user.cv_url, user.skills?.length, user.experience?.length, user.education?.length]
+                  user.picture, cvFile || user.cv_url, user.skills?.length, user.experience?.length, user.education?.length]
   const pct = Math.round((fields.filter(Boolean).length / fields.length) * 100)
+
+  const TABS = [
+    { key: "personal",   icon: "👤", label: t("seeker.profile.sections.personal") },
+    { key: "cv",          icon: "📄", label: t("seeker.profile.sections.cv") },
+    { key: "skills",      icon: "⚡", label: t("seeker.profile.sections.skills"), count: user.skills?.length },
+    { key: "experience",  icon: "💼", label: t("seeker.profile.sections.experience"), count: user.experience?.length },
+    { key: "education",   icon: "🎓", label: t("seeker.profile.sections.education"), count: user.education?.length },
+  ]
 
   if (loading) {
     return (
@@ -409,7 +445,6 @@ export default function SeekerProfile() {
            style={{ background:"rgba(15,23,42,.75)", borderColor:"rgba(255,255,255,.08)" }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
 
-          {/* back */}
           <button onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -420,12 +455,10 @@ export default function SeekerProfile() {
             {t("seeker.profile.back")}
           </button>
 
-          {/* title */}
           <h1 className="text-sm font-bold text-white tracking-wide">
             {t("seeker.profile.title")}
           </h1>
 
-          {/* lang toggle */}
           <button onClick={toggleLang}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold
                        text-white/70 hover:text-white transition"
@@ -439,19 +472,28 @@ export default function SeekerProfile() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-5 relative">
 
         {/* ── Hero card ── */}
-        <div className="rounded-3xl overflow-hidden shadow-2xl"
+        <div className="relative rounded-3xl overflow-hidden shadow-2xl"
              style={{ background:"linear-gradient(135deg,#1e3a5f,#2d5282)" }}>
-          {/* subtle pattern */}
           <div className="absolute inset-0 opacity-5 pointer-events-none"
                style={{ backgroundImage:"repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)", backgroundSize:"20px 20px" }}/>
           <div className="relative px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            {/* avatar */}
+            {/* avatar + upload */}
             <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-lg"
-                   style={{ background:"linear-gradient(135deg,#3b82f6,#6366f1)" }}>
-                {user.full_name ? user.full_name.charAt(0) : "U"}
+              <input ref={avatarRef} type="file" accept="image/*" className="hidden"
+                onChange={e => handleAvatarFile(e.target.files[0])} />
+              <div className="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center text-2xl font-black text-white shadow-lg"
+                   style={{ background: user.picture ? "transparent" : "linear-gradient(135deg,#3b82f6,#6366f1)" }}>
+                {user.picture
+                  ? <img src={user.picture} alt="" className="w-full h-full object-cover" />
+                  : (user.full_name ? user.full_name.charAt(0) : "U")}
               </div>
-              <div className="absolute -bottom-1 -end-1 w-5 h-5 rounded-full bg-green-400 border-2 border-[#1e3a5f]"/>
+              <button type="button" onClick={() => avatarRef.current?.click()}
+                title={t("seeker.profile.avatar.change") || "تغيير الصورة"}
+                className="absolute -bottom-1.5 -end-1.5 w-6 h-6 rounded-full flex items-center justify-center
+                           text-white shadow-md border-2 transition hover:brightness-110"
+                style={{ background: accent, borderColor: navyMd }}>
+                {avatarUploading ? <SpinIcon /> : <CameraIcon />}
+              </button>
             </div>
 
             {/* info */}
@@ -488,201 +530,234 @@ export default function SeekerProfile() {
             </div>
           </div>
 
-          {/* saved toast inside hero */}
-          {saved && (
+          {avatarError && (
             <div className="mx-6 mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
-                 style={{ background:"rgba(34,197,94,.15)", color:"#86efac", border:"1px solid rgba(34,197,94,.2)" }}>
-              <CheckIcon /> {t("seeker.profile.saved")}
+                 style={{ background:"rgba(239,68,68,.15)", color:"#fca5a5", border:"1px solid rgba(239,68,68,.2)" }}>
+              {avatarError}
             </div>
           )}
         </div>
 
-        {/* ── Personal Info ── */}
-        <Section icon="👤" title={t("seeker.profile.sections.personal")}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label={t("seeker.profile.fields.full_name")} required error={errors.full_name}>
-              <input value={user.full_name} onChange={e => setField("full_name", e.target.value)}
-                className={inputCls + (errors.full_name ? " !border-red-300 !ring-red-100" : "")} />
-            </Field>
-            <Field label={t("seeker.profile.fields.email")} required error={errors.email}>
-              <input type="email" value={user.email} onChange={e => setField("email", e.target.value)}
-                className={inputCls + (errors.email ? " !border-red-300 !ring-red-100" : "")} />
-            </Field>
-            <Field label={t("seeker.profile.fields.phone")}>
-              <input value={user.phone_number} onChange={e => setField("phone_number", e.target.value)}
-                placeholder="09XXXXXXXX" className={inputCls} />
-            </Field>
-            <Field label={t("seeker.profile.fields.governorate")} required error={errors.governorate}>
-              <div className="relative">
-                <select value={user.governorate} onChange={e => setField("governorate", e.target.value)}
-                  className={selectCls + (errors.governorate ? " !border-red-300 !ring-red-100" : "")}>
-                  <option value="">{t("seeker.profile.placeholders.select")}</option>
-                  {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-                <svg className="pointer-events-none absolute top-1/2 -translate-y-1/2 end-3 text-gray-400"
-                     width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </div>
-            </Field>
-          </div>
-          <div className="mt-4">
-            <Field label={t("seeker.profile.fields.bio")}>
-              <textarea rows={3} value={user.bio} onChange={e => setField("bio", e.target.value)}
-                placeholder={t("seeker.profile.placeholders.bio")}
-                className={inputCls + " resize-none"} />
-            </Field>
-          </div>
-        </Section>
+        {/* ── Tabs ── */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          {TABS.map(tab => (
+            <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex-shrink-0"
+              style={activeTab === tab.key
+                ? { background:"#fff", color: navyMd, boxShadow:"0 4px 14px rgba(0,0,0,.15)" }
+                : { background:"rgba(255,255,255,.08)", color:"rgba(255,255,255,.65)" }}>
+              <span>{tab.icon}</span>
+              {tab.label}
+              {typeof tab.count === "number" && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                      style={activeTab === tab.key
+                        ? { background:"#eef4ff", color:"#2563eb" }
+                        : { background:"rgba(255,255,255,.12)", color:"rgba(255,255,255,.8)" }}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Personal ── */}
+        {activeTab === "personal" && (
+          <Panel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t("seeker.profile.fields.full_name")} required error={errors.full_name}>
+                <input value={user.full_name} onChange={e => setField("full_name", e.target.value)}
+                  className={inputCls + (errors.full_name ? " !border-red-300 !ring-red-100" : "")} />
+              </Field>
+              <Field label={t("seeker.profile.fields.email")} required error={errors.email}>
+                <input type="email" value={user.email} onChange={e => setField("email", e.target.value)}
+                  className={inputCls + (errors.email ? " !border-red-300 !ring-red-100" : "")} />
+              </Field>
+              <Field label={t("seeker.profile.fields.phone")}>
+                <input value={user.phone_number} onChange={e => setField("phone_number", e.target.value)}
+                  placeholder="09XXXXXXXX" className={inputCls} />
+              </Field>
+              <Field label={t("seeker.profile.fields.governorate")} required error={errors.governorate}>
+                <div className="relative">
+                  <select value={user.governorate} onChange={e => setField("governorate", e.target.value)}
+                    className={selectCls + (errors.governorate ? " !border-red-300 !ring-red-100" : "")}>
+                    <option value="">{t("seeker.profile.placeholders.select")}</option>
+                    {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <svg className="pointer-events-none absolute top-1/2 -translate-y-1/2 end-3 text-gray-400"
+                       width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+              </Field>
+            </div>
+            <div className="mt-4">
+              <Field label={t("seeker.profile.fields.bio")}>
+                <textarea rows={3} value={user.bio} onChange={e => setField("bio", e.target.value)}
+                  placeholder={t("seeker.profile.placeholders.bio")}
+                  className={inputCls + " resize-none"} />
+              </Field>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-gray-100">
+              {saved && (
+                <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color:"#16a34a" }}>
+                  <CheckIcon /> {t("seeker.profile.saved")}
+                </span>
+              )}
+              <button type="button" onClick={handleSave} disabled={saving}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white
+                           shadow-lg hover:shadow-xl disabled:opacity-60 transition-all"
+                style={{ background:`linear-gradient(135deg,${navy},${navyLt})` }}>
+                {saving ? <><SpinIcon />{t("seeker.profile.saving")}</> : t("seeker.profile.save")}
+              </button>
+            </div>
+          </Panel>
+        )}
 
         {/* ── CV ── */}
-        <Section icon="📄" title={t("seeker.profile.sections.cv")}>
-          <div
-            onDragOver={e => { e.preventDefault(); setCvDrag(true) }}
-            onDragLeave={() => setCvDrag(false)}
-            onDrop={e => { e.preventDefault(); setCvDrag(false); handleCvFile(e.dataTransfer.files[0]) }}
-            onClick={() => fileRef.current?.click()}
-            className="relative rounded-2xl border-2 border-dashed p-8 flex flex-col items-center gap-3
-                       cursor-pointer transition-all"
-            style={{
-              borderColor: cvDrag ? "#3b82f6" : "#c7d7fd",
-              background:  cvDrag ? "#eff6ff" : "linear-gradient(135deg,#f8faff,#eef4ff)",
-            }}
-          >
-            <input ref={fileRef} type="file" accept=".pdf" className="hidden"
-              onChange={e => handleCvFile(e.target.files[0])} />
+        {activeTab === "cv" && (
+          <Panel>
+            <div
+              onDragOver={e => { e.preventDefault(); setCvDrag(true) }}
+              onDragLeave={() => setCvDrag(false)}
+              onDrop={e => { e.preventDefault(); setCvDrag(false); handleCvFile(e.dataTransfer.files[0]) }}
+              onClick={() => fileRef.current?.click()}
+              className="relative rounded-2xl border-2 border-dashed p-8 flex flex-col items-center gap-3
+                         cursor-pointer transition-all"
+              style={{
+                borderColor: cvDrag ? "#3b82f6" : "#c7d7fd",
+                background:  cvDrag ? "#eff6ff" : "linear-gradient(135deg,#f8faff,#eef4ff)",
+              }}
+            >
+              <input ref={fileRef} type="file" accept=".pdf" className="hidden"
+                onChange={e => handleCvFile(e.target.files[0])} />
 
-            {cvFile ? (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                     style={{ background:"#dbeafe", color:"#2563eb" }}>
-                  <FileIcon />
+              {cvFile ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                       style={{ background:"#dbeafe", color:"#2563eb" }}>
+                    <FileIcon />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">{cvFile.name}</p>
+                    <p className="text-xs text-slate-400">{(cvFile.size/1024).toFixed(0)} KB</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">{cvFile.name}</p>
-                  <p className="text-xs text-slate-400">{(cvFile.size/1024).toFixed(0)} KB</p>
+              ) : user.cv_url ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                       style={{ background:"#dbeafe", color:"#2563eb" }}>
+                    <FileIcon />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">{t("seeker.profile.cv.existing")}</p>
+                    <a href={user.cv_url} target="_blank" rel="noreferrer"
+                       onClick={e => e.stopPropagation()}
+                       className="text-xs text-blue-500 hover:underline">{t("seeker.profile.cv.view")}</a>
+                  </div>
                 </div>
-              </div>
-            ) : user.cv_url ? (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                     style={{ background:"#dbeafe", color:"#2563eb" }}>
-                  <FileIcon />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">{t("seeker.profile.cv.existing")}</p>
-                  <a href={user.cv_url} target="_blank" rel="noreferrer"
-                     onClick={e => e.stopPropagation()}
-                     className="text-xs text-blue-500 hover:underline">{t("seeker.profile.cv.view")}</a>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                     style={{ background:"linear-gradient(135deg,#dbeafe,#c7d7fd)", color:"#2563eb" }}>
-                  <UploadIcon />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-slate-600">{t("seeker.profile.cv.drag")}</p>
-                  <p className="text-xs text-slate-400 mt-1">{t("seeker.profile.cv.hint")}</p>
-                </div>
-              </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                       style={{ background:"linear-gradient(135deg,#dbeafe,#c7d7fd)", color:"#2563eb" }}>
+                    <UploadIcon />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-slate-600">{t("seeker.profile.cv.drag")}</p>
+                    <p className="text-xs text-slate-400 mt-1">{t("seeker.profile.cv.hint")}</p>
+                  </div>
+                </>
+              )}
+            </div>
+            {cvError && <p className="mt-2 text-xs text-red-400">{cvError}</p>}
+            {cvFile && (
+              <button type="button" onClick={() => setCvFile(null)}
+                className="mt-2 text-xs text-slate-400 hover:text-red-400 transition">
+                {t("seeker.profile.cv.remove")}
+              </button>
             )}
-          </div>
-          {cvError && <p className="mt-2 text-xs text-red-400">{cvError}</p>}
-          {cvFile && (
-            <button type="button" onClick={() => setCvFile(null)}
-              className="mt-2 text-xs text-slate-400 hover:text-red-400 transition">
-              {t("seeker.profile.cv.remove")}
-            </button>
-          )}
-        </Section>
+          </Panel>
+        )}
 
         {/* ── Skills ── */}
-        <Section icon="⚡" title={t("seeker.profile.sections.skills")}>
-          <div className="flex flex-wrap gap-2 mb-4 min-h-[2rem]">
-            {user.skills?.map(s => <SkillTag key={s.id} label={s.name} onRemove={() => removeSkill(s)} />)}
-            {!user.skills?.length && (
-              <p className="text-xs text-slate-400">{t("seeker.profile.skills.empty")}</p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addSkill()}
-              placeholder={t("seeker.profile.skills.placeholder")}
-              className={inputCls + " flex-1"} />
-            <button type="button" onClick={addSkill}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition"
-              style={{ background:`linear-gradient(135deg,${navyMd},${navyLt})` }}>
-              <PlusIcon />{t("seeker.profile.skills.add")}
-            </button>
-          </div>
-        </Section>
+        {activeTab === "skills" && (
+          <Panel>
+            <div className="flex flex-wrap gap-2 mb-4 min-h-[2rem]">
+              {user.skills?.map(s => <SkillTag key={s.id} label={s.name} onRemove={() => removeSkill(s)} />)}
+              {!user.skills?.length && (
+                <p className="text-xs text-slate-400">{t("seeker.profile.skills.empty")}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addSkill()}
+                placeholder={t("seeker.profile.skills.placeholder")}
+                className={inputCls + " flex-1"} />
+              <button type="button" onClick={addSkill}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition"
+                style={{ background:`linear-gradient(135deg,${navyMd},${navyLt})` }}>
+                <PlusIcon />{t("seeker.profile.skills.add")}
+              </button>
+            </div>
+          </Panel>
+        )}
 
         {/* ── Experience ── */}
-        <Section
-          icon="💼"
-          title={t("seeker.profile.sections.experience")}
-          action={
-            <button type="button"
-              onClick={() => setExpModal({ mode:"add", data:{ title:"", company:"", from:"", to:"", current:false } })}
-              className="flex items-center gap-1 text-xs font-bold transition"
-              style={{ color: navyMd }}>
-              <PlusIcon />{t("seeker.profile.add")}
-            </button>
-          }
-        >
-          {!user.experience?.length
-            ? <p className="text-xs text-slate-400">{t("seeker.profile.experience.empty")}</p>
-            : <div className="space-y-3">
-                {user.experience.map(exp => (
-                  <TimelineCard key={exp.id}
-                    top={exp.title} sub={exp.company}
-                    meta={`${exp.from} — ${exp.current ? t("seeker.profile.experience.present") : exp.to}`}
-                    onEdit={() => setExpModal({ mode:"edit", data:{ ...exp } })}
-                    onDelete={() => deleteExp(exp.id)}
-                  />
-                ))}
-              </div>
-          }
-        </Section>
+        {activeTab === "experience" && (
+          <Panel
+            action={
+              <button type="button"
+                onClick={() => setExpModal({ mode:"add", data:{ title:"", company:"", from:"", to:"", current:false } })}
+                className="flex items-center gap-1 text-xs font-bold transition"
+                style={{ color: navyMd }}>
+                <PlusIcon />{t("seeker.profile.add")}
+              </button>
+            }
+          >
+            {!user.experience?.length
+              ? <p className="text-xs text-slate-400">{t("seeker.profile.experience.empty")}</p>
+              : <div className="space-y-3">
+                  {user.experience.map(exp => (
+                    <TimelineCard key={exp.id}
+                      top={exp.title} sub={exp.company}
+                      meta={`${exp.from} — ${exp.current ? t("seeker.profile.experience.present") : exp.to}`}
+                      onEdit={() => setExpModal({ mode:"edit", data:{ ...exp } })}
+                      onDelete={() => deleteExp(exp.id)}
+                    />
+                  ))}
+                </div>
+            }
+          </Panel>
+        )}
 
         {/* ── Education ── */}
-        <Section
-          icon="🎓"
-          title={t("seeker.profile.sections.education")}
-          action={
-            <button type="button"
-              onClick={() => setEduModal({ mode:"add", data:{ degree:"", institution:"", year:"" } })}
-              className="flex items-center gap-1 text-xs font-bold transition"
-              style={{ color: navyMd }}>
-              <PlusIcon />{t("seeker.profile.add")}
-            </button>
-          }
-        >
-          {!user.education?.length
-            ? <p className="text-xs text-slate-400">{t("seeker.profile.education.empty")}</p>
-            : <div className="space-y-3">
-                {user.education.map(edu => (
-                  <TimelineCard key={edu.id}
-                    top={edu.degree} sub={edu.institution} meta={edu.year}
-                    onEdit={() => setEduModal({ mode:"edit", data:{ ...edu } })}
-                    onDelete={() => deleteEdu(edu.id)}
-                  />
-                ))}
-              </div>
-          }
-        </Section>
+        {activeTab === "education" && (
+          <Panel
+            action={
+              <button type="button"
+                onClick={() => setEduModal({ mode:"add", data:{ degree:"", institution:"", year:"" } })}
+                className="flex items-center gap-1 text-xs font-bold transition"
+                style={{ color: navyMd }}>
+                <PlusIcon />{t("seeker.profile.add")}
+              </button>
+            }
+          >
+            {!user.education?.length
+              ? <p className="text-xs text-slate-400">{t("seeker.profile.education.empty")}</p>
+              : <div className="space-y-3">
+                  {user.education.map(edu => (
+                    <TimelineCard key={edu.id}
+                      top={edu.degree} sub={edu.institution} meta={edu.year}
+                      onEdit={() => setEduModal({ mode:"edit", data:{ ...edu } })}
+                      onDelete={() => deleteEdu(edu.id)}
+                    />
+                  ))}
+                </div>
+            }
+          </Panel>
+        )}
 
-        {/* ── Save ── */}
-        <div className="flex justify-end pb-8">
-          <button type="button" onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white
-                       shadow-lg hover:shadow-xl disabled:opacity-60 transition-all"
-            style={{ background:`linear-gradient(135deg,${navy},${navyLt})` }}>
-            {saving ? <><SpinIcon />{t("seeker.profile.saving")}</> : t("seeker.profile.save")}
-          </button>
-        </div>
+        <div className="pb-4" />
       </div>
 
       {/* ══ Modals ══ */}

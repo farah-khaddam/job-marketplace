@@ -22,10 +22,20 @@ export const updateProfile = (profileData, token) =>
 // ─── CV ────────────────────────────────────────────────────
 export const uploadCV = (file, token) => {
   const formData = new FormData();
-  formData.append("cv", file);
+  formData.append("cv_file", file);
   return api.post("profile/cv/", formData, {
     headers: authHeaders(token),
     // ما منحط Content-Type يدوياً هون - axios بيضيفه لحاله مع الـ boundary الصحيح لـ multipart
+  });
+};
+
+// ─── Profile picture ───────────────────────────────────────
+// افترضت اسم الحقل "picture" - تأكدي من الـ serializer عند الزميل قبل التجربة
+export const uploadPicture = (file, token) => {
+  const formData = new FormData();
+  formData.append("profile_picture", file);
+  return api.post("profile/picture/", formData, {
+    headers: authHeaders(token),
   });
 };
 
