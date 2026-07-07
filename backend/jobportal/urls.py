@@ -10,6 +10,8 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path('api/jobs/', include('jobs.urls')),
 
+    path("api/", include("company_profile.urls")),
+
     # dj-rest-auth routes (password reset etc.)
     path('api/auth/', include('dj_rest_auth.urls')),
     path(
