@@ -1,6 +1,12 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
+import {
+  motion,
+  animate,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 import Navbar from "../components/Navbar"
 
 const CATEGORIES = [
@@ -25,7 +31,23 @@ const FEATURED_COMPANIES = [
 ]
 
 
+function Counter({ from = 0, to }) {
+  const count = useMotionValue(from);
+  const rounded = useTransform(count, (latest) =>
+    Math.round(latest).toLocaleString()
+  );
 
+  useEffect(() => {
+    const controls = animate(count, to, {
+      duration: 2,
+      ease: "easeOut",
+    });
+
+    return controls.stop;
+  }, []);
+
+  return <motion.span>{rounded}</motion.span>;
+}
 
 export default function Home() {
   const { t, i18n } = useTranslation()
@@ -37,6 +59,7 @@ export default function Home() {
   const [governorate, setGovernorate] = useState("")
   const [jobs, setJobs] = useState([])
   const [jobsLoading, setJobsLoading] = useState(true)
+  
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -64,11 +87,39 @@ export default function Home() {
       <Navbar />
 
       {/* ===== Hero ===== */}
-      <div className="bg-[#1e3a5f] px-10 py-16 text-center relative overflow-hidden"
-       style={{ background:"linear-gradient(135deg,#0f2544 0%,#1e3a5f 60%,#162d4a 100%)" }}>
-        <div className="absolute w-72 h-72 rounded-full border border-white/5 -top-20 -right-20" />
-        <div className="absolute w-52 h-52 rounded-full border border-white/5 -bottom-16 -left-16" />
-
+      <motion.div 
+  className="bg-[#1e3a5f] px-10 py-16 text-center relative overflow-hidden"
+  style={{
+    background:
+      "linear-gradient(135deg,#0f2544 0%,#1e3a5f 60%,#162d4a 100%)",
+    transformOrigin: "top center",
+    
+  }}
+>
+        <motion.div
+className="absolute w-72 h-72 rounded-full border border-white/5 -top-20 -right-20"
+animate={{
+    y:[0,-20,0],
+    x:[0,15,0]
+}}
+transition={{
+    duration:10,
+    repeat:Infinity,
+    ease:"easeInOut"
+}}
+/>
+        <motion.div
+className="absolute w-52 h-52 rounded-full border border-white/5 -bottom-16 -left-16"
+animate={{
+    y:[0,20,0],
+    x:[0,-15,0]
+}}
+transition={{
+    duration:12,
+    repeat:Infinity,
+    ease:"easeInOut"
+}}
+/>
         <h1 className="text-4xl font-medium text-white mb-3 leading-relaxed relative">
           {t("home.hero_title_1")} <span className="text-blue-300">{t("home.hero_title_2")}</span>
           <br />{t("home.hero_title_3")}
@@ -105,21 +156,33 @@ export default function Home() {
         {/* Stats */}
         <div className="flex justify-center gap-12 relative mt-10">
           {[
-            { num: "+2,000", label: t("home.stat_jobs") },
-            { num: "+500", label: t("home.stat_companies") },
-            { num: "+10,000", label: t("home.stat_seekers") },
-          ].map((s) => (
+  { num: 2000, label: t("home.stat_jobs") },
+  { num: 100, label: t("home.stat_companies") },
+  { num: 10000, label: t("home.stat_seekers") },
+].map((s) => (
             <div key={s.label} className="text-center">
-              <strong className="block text-xl text-white">{s.num}</strong>
+              <strong className="block text-xl text-white"><Counter from={0} to={s.num} /></strong>
               <small className="text-xs text-white/60">{s.label}</small>
             </div>
           ))}
         </div>
-      </div>
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
+  
+</div>
+      </motion.div>
 
       {/* ===== قسم حسب حالة المستخدم ===== */}
       {isLoggedIn ? (
-        <div className="px-4 md:px-10 py-10">
+        <motion.section
+    initial={{ opacity: 0, y: 70 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{
+        duration: 0.7,
+        ease: "easeOut"
+    }}
+    className="px-4 md:px-10 py-10"
+>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             {/* وظائف زارها مؤخراً */}
@@ -130,7 +193,11 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-3">
                 {jobs.slice(0, 2).map(job => (
-                  <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:border-blue-500 transition">
+                  <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:-translate-y-2
+hover:shadow-2xl
+hover:scale-[1.02]
+transition-all
+duration-300 transition">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{job.title}</p>
                       <p className="text-xs text-gray-500">{job.company_name} · {job.city_label}</p>
@@ -149,7 +216,11 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-3">
                 {jobs.slice(0, 2).map(job => ( 
-                  <div key={job.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center">
+                  <div key={job.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center hover:-translate-y-2
+hover:shadow-2xl
+hover:scale-[1.02]
+transition-all
+duration-300 transition">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{isAr ? job.title_ar : job.title_en}</p>
                       <p className="text-xs text-gray-500">{isAr ? job.company_ar : job.company_en}</p>
@@ -161,9 +232,18 @@ export default function Home() {
             </div>
 
           </div>
-        </div>
+        </motion.section>
       ) : (
-        <div className="px-4 md:px-10 py-10">
+        <motion.section
+    initial={{ opacity: 0, y: 70 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{
+        duration: 0.7,
+        ease: "easeOut"
+    }}
+    className="px-4 md:px-10 py-10"
+>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-medium text-gray-900">{t("home.browse_by_category")}</h2>
           </div>
@@ -172,18 +252,32 @@ export default function Home() {
               <button
                 key={cat.key}
                 onClick={() => navigate(`/jobs?category=${cat.key}`)}
-                className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:border-blue-500 hover:shadow-sm transition flex flex-col items-center gap-2"
+                className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:-translate-y-2
+hover:shadow-2xl
+hover:scale-[1.02]
+transition-all
+duration-300 hover:shadow-sm transition flex flex-col items-center gap-2"
               >
                 <span style={{ fontSize: "24px" }}>{cat.icon}</span>
                 <span className="text-xs font-medium text-gray-700">{isAr ? cat.ar : cat.en}</span>
               </button>
             ))}
           </div>
-        </div>
+          </motion.section>
+       
       )}
 
       {/* ===== أحدث الوظائف ===== */}
-      <div className="px-4 md:px-10 py-10">
+      <motion.section
+    initial={{ opacity: 0, y: 70 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{
+        duration: 0.7,
+        ease: "easeOut"
+    }}
+    className="px-4 md:px-10 py-10"
+>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-medium text-gray-900">{t("home.latest_jobs")}</h2>
           <span
@@ -217,7 +311,11 @@ export default function Home() {
               <div
                 key={job.id}
                 onClick={() => navigate(`/jobs/${job.id}`)}
-                className="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition"
+                className="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:-translate-y-2
+hover:shadow-2xl
+hover:scale-[1.02]
+transition-all
+duration-300 transition"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-800 text-xs font-medium">
@@ -253,10 +351,19 @@ export default function Home() {
             ))}
           </div>
         )}
-      </div>
+      </motion.section>
 
       {/* ===== أبرز الشركات ===== */}
-      <div className="px-4 md:px-10 py-10">
+      <motion.section
+    initial={{ opacity: 0, y: 70 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{
+        duration: 0.7,
+        ease: "easeOut"
+    }}
+    className="px-4 md:px-10 py-10"
+>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-medium text-gray-900">
             {isAr ? "أبرز الشركات" : "Featured Companies"}
@@ -273,7 +380,11 @@ export default function Home() {
             <div
               key={company.id}
               onClick={() => navigate(`/companies/${company.id}`)}
-              className="bg-white border border-gray-100 rounded-xl p-5 cursor-pointer hover:border-blue-500 hover:shadow-sm transition flex items-center gap-4"
+              className="bg-white border border-gray-100 rounded-xl p-5 cursor-pointer hover:-translate-y-2
+hover:shadow-2xl
+hover:scale-[1.02]
+transition-all
+duration-300 transition flex items-center gap-4"
             >
               {/* أيقونة الشركة */}
               <div className={`w-12 h-12 rounded-xl ${company.color} flex items-center justify-center text-2xl flex-shrink-0`}>
@@ -297,7 +408,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-      </div>
+      </motion.section>
 
       {/* ===== Footer ===== */}
       <footer className="bg-[#1e3a5f] px-10 py-8 text-center">
