@@ -46,7 +46,7 @@ class SeekerProfileSerializer(serializers.ModelSerializer):
         fields = [
             "full_name", "email", "phone_number", "governorate", "bio",
             "cv_url", "profile_picture_url", "skills", "experiences",
-            "completion_percentage","education_entries"
+            "completion_percentage","education_entries","cv_url",
         ]
 
     def get_cv_url(self, obj):

@@ -25,7 +25,7 @@ def validate_profile_picture(file):
     ext = os.path.splitext(file.name)[1].lower()
     if ext not in (".jpg", ".jpeg", ".png"):
         raise ValidationError("picture_invalid_type")
-    if file.size > 2 * 1024 * 1024:  
+    if file.size > 20 * 1024 * 1024:  
         raise ValidationError("picture_too_large")
 
 def cv_upload_path(instance, filename):
@@ -56,7 +56,7 @@ class SeekerProfile(models.Model):
      max_length=500,
      blank=True,
      null=True,
-     help_text="رابط صورة خارجي (متل صورة حساب Google)، يُستخدم فقط إذا ما في profile_picture مرفوعة يدوياً",
+    
 )
     updated_at = models.DateTimeField(auto_now=True)
 
