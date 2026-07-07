@@ -13,14 +13,13 @@ const GOVERNORATES = [
   "حماة","دير الزور","الرقة","السويداء","درعا","ريف دمشق","إدلب",
 ]
 
-// الباك إند بيسمي حقول الخبرة date_from / date_to / is_current بدل from / to / current
-// ⚠️ date_from مؤكدة من رسالة الخطأ، أما date_to و is_current افتراض لسا لازم يتأكد بعد أول تجربة ناجحة
+// الحقول مؤكدة الآن من الـ serializer: date_from / date_to / current
 const expToApi = (d) => ({
   title: d.title,
   company: d.company,
   date_from: d.from,
   date_to: d.current ? null : d.to,
-  is_current: d.current,
+  current: d.current,
 })
 const expFromApi = (e) => ({
   id: e.id,
@@ -28,7 +27,7 @@ const expFromApi = (e) => ({
   company: e.company,
   from: e.date_from,
   to: e.date_to,
-  current: e.is_current,
+  current: e.current,
 })
 
 // ─── Design tokens ───────────────────────────────────────────────
@@ -238,6 +237,7 @@ export default function SeekerProfile() {
         setUser(p => ({
           ...p,
           ...profileRes.data,
+          picture: profileRes.data.profile_picture_url || null,
           skills: asList(skillsRes.data),
           experience: asList(expRes.data).map(expFromApi),
           education: asList(eduRes.data),
@@ -259,7 +259,6 @@ export default function SeekerProfile() {
   const validate = () => {
     const e = {}
     if (!user.full_name?.trim()) e.full_name   = t("seeker.profile.errors.required")
-    if (!user.email?.trim())     e.email       = t("seeker.profile.errors.required")
     if (!user.governorate)      e.governorate = t("seeker.profile.errors.required")
     return e
   }
@@ -277,7 +276,6 @@ export default function SeekerProfile() {
 
       const profileData = {
         full_name: user.full_name,
-        email: user.email,
         phone_number: user.phone_number,
         governorate: user.governorate,
         bio: user.bio
@@ -344,7 +342,7 @@ export default function SeekerProfile() {
       const token = localStorage.getItem("token")
       const res = await uploadPicture(file, token)
       // إذا الباك إند رجّع رابط الصورة الحقيقي منستخدمه، وإلا منبقى على المعاينة المحلية
-      setUser(p => ({ ...p, picture: res.data?.profile_picture || res.data?.picture || res.data?.picture_url || previewUrl }))
+      setUser(p => ({ ...p, picture: res.data?.profile_picture_url || previewUrl }))
     } catch (err) {
       console.log("Error uploading picture:", err)
       setAvatarError(t("seeker.profile.avatar.upload_failed") || "فشل رفع الصورة، حاولي مرة تانية")
@@ -438,10 +436,11 @@ export default function SeekerProfile() {
     }
   }
 
-  // completion %
+  // completion % - الباك إند عندو completion_percentage جاهز بالـ serializer، منستخدمه إذا موجود
   const fields = [user.full_name, user.email, user.phone_number, user.governorate, user.bio,
                   user.picture, cvFile || user.cv_url, user.skills?.length, user.experience?.length, user.education?.length]
-  const pct = Math.round((fields.filter(Boolean).length / fields.length) * 100)
+  const localPct = Math.round((fields.filter(Boolean).length / fields.length) * 100)
+  const pct = user.completion_percentage != null ? Math.round(user.completion_percentage) : localPct
 
   const TABS = [
     { key: "personal",   icon: "👤", label: t("seeker.profile.sections.personal") },
@@ -599,9 +598,9 @@ export default function SeekerProfile() {
                 <input value={user.full_name} onChange={e => setField("full_name", e.target.value)}
                   className={inputCls + (errors.full_name ? " !border-red-300 !ring-red-100" : "")} />
               </Field>
-              <Field label={t("seeker.profile.fields.email")} required error={errors.email}>
-                <input type="email" value={user.email} onChange={e => setField("email", e.target.value)}
-                  className={inputCls + (errors.email ? " !border-red-300 !ring-red-100" : "")} />
+              <Field label={t("seeker.profile.fields.email")}>
+                <input type="email" value={user.email} disabled
+                  className={inputCls + " opacity-60 cursor-not-allowed"} />
               </Field>
               <Field label={t("seeker.profile.fields.phone")}>
                 <input value={user.phone_number} onChange={e => setField("phone_number", e.target.value)}
