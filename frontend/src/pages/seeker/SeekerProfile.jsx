@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import {
-  getProfile, updateProfile, uploadCV, uploadPicture,
-  createSkill, deleteSkill,
-  createExperience, updateExperience, deleteExperience,
-  createEducation, updateEducation, deleteEducation,
+  getProfile, updateProfile, uploadCV, deleteCV, uploadPicture,
+  getSkills, createSkill, deleteSkill,
+  getExperience, createExperience, updateExperience, deleteExperience,
+  getEducation, createEducation, updateEducation, deleteEducation,
 } from "../../api/seekerProfile"
 
 const GOVERNORATES = [
@@ -219,20 +219,28 @@ export default function SeekerProfile() {
   const [avatarError, setAvatarError] = useState("")
 
   const [newSkill, setNewSkill] = useState("")
+  const [skillError, setSkillError] = useState("")
   const [expModal, setExpModal] = useState(null)
   const [eduModal, setEduModal] = useState(null)
 
   useEffect(() => {
+    const asList = (data) => Array.isArray(data) ? data : (data?.results || [])
+
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("token")
-        const res = await getProfile(token)
+        const [profileRes, skillsRes, expRes, eduRes] = await Promise.all([
+          getProfile(token),
+          getSkills(token),
+          getExperience(token),
+          getEducation(token),
+        ])
         setUser(p => ({
           ...p,
-          ...res.data,
-          skills: res.data.skills || [],
-          experience: (res.data.experience || []).map(expFromApi),
-          education: res.data.education || [],
+          ...profileRes.data,
+          skills: asList(skillsRes.data),
+          experience: asList(expRes.data).map(expFromApi),
+          education: asList(eduRes.data),
         }))
       } catch (err) {
         console.log("Error loading profile:", err)
@@ -306,6 +314,19 @@ export default function SeekerProfile() {
     }
   }
 
+  const removeCv = async () => {
+    setCvError("")
+    try {
+      const token = localStorage.getItem("token")
+      await deleteCV(token)
+      setCvFile(null)
+      setUser(p => ({ ...p, cv_url: null }))
+    } catch (err) {
+      console.log("Error deleting CV:", err)
+      setCvError(t("seeker.profile.cv.delete_failed") || "فشل حذف الملف، حاولي مرة تانية")
+    }
+  }
+
   const handleAvatarFile = async (file) => {
     setAvatarError("")
     if (!file) return
@@ -334,8 +355,13 @@ export default function SeekerProfile() {
   }
 
   const addSkill = async () => {
+    setSkillError("")
     const s = newSkill.trim()
-    if (!s || user.skills?.some(sk => sk.name === s)) return
+    if (!s) return
+    if (user.skills?.some(sk => sk.name === s)) {
+      setSkillError(t("seeker.profile.skills.duplicate") || "المهارة هاي مضافة مسبقاً")
+      return
+    }
     try {
       const token = localStorage.getItem("token")
       const res = await createSkill(s, token)
@@ -343,15 +369,20 @@ export default function SeekerProfile() {
       setNewSkill("")
     } catch (err) {
       console.log("Error adding skill:", err)
+      // منعرض الرسالة يلي رجعها الباك إند إذا موجودة، لأنو غالباً بتحدد سبب الرفض بالضبط
+      const backendMsg = err?.response?.data ? JSON.stringify(err.response.data) : null
+      setSkillError(backendMsg || t("seeker.profile.skills.add_failed") || "فشل إضافة المهارة، حاولي مرة تانية")
     }
   }
   const removeSkill = async (skill) => {
+    setSkillError("")
     try {
       const token = localStorage.getItem("token")
       await deleteSkill(skill.id, token)
       setUser(p => ({ ...p, skills: p.skills.filter(x => x.id !== skill.id) }))
     } catch (err) {
       console.log("Error removing skill:", err)
+      setSkillError(t("seeker.profile.skills.remove_failed") || "فشل حذف المهارة، حاولي مرة تانية")
     }
   }
 
@@ -670,8 +701,8 @@ export default function SeekerProfile() {
               )}
             </div>
             {cvError && <p className="mt-2 text-xs text-red-400">{cvError}</p>}
-            {cvFile && (
-              <button type="button" onClick={() => setCvFile(null)}
+            {(cvFile || user.cv_url) && (
+              <button type="button" onClick={removeCv}
                 className="mt-2 text-xs text-slate-400 hover:text-red-400 transition">
                 {t("seeker.profile.cv.remove")}
               </button>
@@ -699,6 +730,7 @@ export default function SeekerProfile() {
                 <PlusIcon />{t("seeker.profile.skills.add")}
               </button>
             </div>
+            {skillError && <p className="mt-2 text-xs text-red-400">{skillError}</p>}
           </Panel>
         )}
 

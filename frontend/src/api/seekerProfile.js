@@ -29,6 +29,9 @@ export const uploadCV = (file, token) => {
   });
 };
 
+export const deleteCV = (token) =>
+  api.delete("profile/cv/", { headers: authHeaders(token) });
+
 // ─── Profile picture ───────────────────────────────────────
 // افترضت اسم الحقل "picture" - تأكدي من الـ serializer عند الزميل قبل التجربة
 export const uploadPicture = (file, token) => {
@@ -41,6 +44,9 @@ export const uploadPicture = (file, token) => {
 
 // ─── Skills ────────────────────────────────────────────────
 // افترضت اسم الحقل "name" - تأكدي من serializers.py عند الزميل أو من الـ DRF Browsable API
+export const getSkills = (token) =>
+  api.get("skills/", { headers: authHeaders(token) });
+
 export const createSkill = (name, token) =>
   api.post("skills/", { name }, { headers: authHeaders(token) });
 
@@ -49,6 +55,9 @@ export const deleteSkill = (id, token) =>
 
 // ─── Experience ────────────────────────────────────────────
 // افترضت نفس أسماء الحقول المستخدمة بالفرونت (title, company, from, to, current)
+export const getExperience = (token) =>
+  api.get("experience/", { headers: authHeaders(token) });
+
 export const createExperience = (data, token) =>
   api.post("experience/", data, { headers: authHeaders(token) });
 
@@ -60,6 +69,9 @@ export const deleteExperience = (id, token) =>
 
 // ─── Education ─────────────────────────────────────────────
 // نفس الملاحظة: تأكدي من أسماء الحقول (degree, institution, year)
+export const getEducation = (token) =>
+  api.get("education/", { headers: authHeaders(token) });
+
 export const createEducation = (data, token) =>
   api.post("education/", data, { headers: authHeaders(token) });
 
