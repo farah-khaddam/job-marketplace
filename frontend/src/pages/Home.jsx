@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   motion,
   animate,
@@ -9,25 +9,30 @@ import {
 } from "framer-motion";
 import Navbar from "../components/Navbar"
 
-const CATEGORIES = [
-  { key: "tech",  ar: "تقنية المعلومات", en: "Information Technology" },
-  { key: "marketing", ar: "تسويق وإعلام", en: "Marketing & Media" },
-  { key: "engineering",  ar: "هندسة", en: "Engineering" },
-  { key: "health", ar: "صحة", en: "Healthcare" },
-  { key: "education", ar: "تعليم", en: "Education" },
-  { key: "finance", ar: "مال وأعمال", en: "Finance & Business" },
+// نفس قيم المحافظات (slugs) المستخدمة بـ JobListings/PostJob وبحقل job.city القادم من الباك اند
+const GOVERNORATES = [
+  { value: "damascus",       label: "دمشق" },
+  { value: "aleppo",         label: "حلب" },
+  { value: "homs",           label: "حمص" },
+  { value: "hama",           label: "حماة" },
+  { value: "latakia",        label: "اللاذقية" },
+  { value: "tartus",         label: "طرطوس" },
+  { value: "deir_ezzor",     label: "دير الزور" },
+  { value: "raqqa",          label: "الرقة" },
+  { value: "suwayda",        label: "السويداء" },
+  { value: "daraa",          label: "درعا" },
+  { value: "idlib",          label: "إدلب" },
+  { value: "hasakah",        label: "الحسكة" },
+  { value: "quneitra",       label: "القنيطرة" },
+  { value: "rural_damascus", label: "ريف دمشق" },
 ]
 
 
 
-
-const FEATURED_COMPANIES = [
-  { id: 1, name_ar: "التقنية المتقدمة", name_en: "Advanced Tech", industry_ar: "تقنية المعلومات", industry_en: "Information Technology", jobs_ar: "12 وظيفة", jobs_en: "12 Jobs", logo: "💻", color: "bg-blue-50" },
-  { id: 2, name_ar: "هلال للحلول", name_en: "Hilal Solutions", industry_ar: "تصميم وإبداع", industry_en: "Design & Creative", jobs_ar: "7 وظائف", jobs_en: "7 Jobs", logo: "🎨", color: "bg-purple-50" },
-  { id: 3, name_ar: "نور للاستثمار", name_en: "Noor Investment", industry_ar: "مال وأعمال", industry_en: "Finance & Business", jobs_ar: "5 وظائف", jobs_en: "5 Jobs", logo: "💰", color: "bg-amber-50" },
-  { id: 4, name_ar: "سيريا ديف", name_en: "Syria Dev", industry_ar: "برمجيات", industry_en: "Software", jobs_ar: "9 وظائف", jobs_en: "9 Jobs", logo: "🖥️", color: "bg-green-50" },
-  { id: 5, name_ar: "الشام للطب", name_en: "Sham Medical", industry_ar: "رعاية صحية", industry_en: "Healthcare", jobs_ar: "4 وظائف", jobs_en: "4 Jobs", logo: "🏥", color: "bg-red-50" },
-  { id: 6, name_ar: "فجر التعليم", name_en: "Fajr Education", industry_ar: "تعليم وتدريب", industry_en: "Education & Training", jobs_ar: "6 وظائف", jobs_en: "6 Jobs", logo: "📚", color: "bg-teal-50" },
+// ألوان تتكرر دورياً على بطاقات الشركات حسب ترتيب ظهورها
+const COMPANY_COLORS = [
+  "bg-blue-50", "bg-purple-50", "bg-amber-50",
+  "bg-green-50", "bg-red-50", "bg-teal-50",
 ]
 
 
@@ -44,7 +49,7 @@ function Counter({ from = 0, to }) {
     });
 
     return controls.stop;
-  }, []);
+  }, [to]);
 
   return <motion.span>{rounded}</motion.span>;
 }
@@ -59,7 +64,10 @@ export default function Home() {
   const [governorate, setGovernorate] = useState("")
   const [jobs, setJobs] = useState([])
   const [jobsLoading, setJobsLoading] = useState(true)
-  
+  const [jobsError, setJobsError] = useState(false)
+  const [specializations, setSpecializations] = useState([])
+  const [specializationsLoading, setSpecializationsLoading] = useState(true)
+  const [specializationsError, setSpecializationsError] = useState(false)
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -67,20 +75,69 @@ export default function Home() {
         const res = await fetch("/api/jobs/")
         if (res.ok) {
           const data = await res.json()
-          setJobs(data)
+          setJobs(Array.isArray(data) ? data : data.results || [])
+        } else {
+          setJobsError(true)
         }
       } catch (err) {
         console.error("fetchJobs error:", err)
+        setJobsError(true)
       } finally {
         setJobsLoading(false)
       }
     }
+    const fetchSpecializations = async () => {
+      try {
+        const res = await fetch("/api/jobs/specializations/")
+        if (res.ok) {
+          const data = await res.json()
+          setSpecializations(Array.isArray(data) ? data : data.results || [])
+        } else {
+          setSpecializationsError(true)
+        }
+      } catch (err) {
+        console.error("fetchSpecializations error:", err)
+        setSpecializationsError(true)
+      } finally {
+        setSpecializationsLoading(false)
+      }
+    }
     fetchJobs()
+    fetchSpecializations()
   }, [])
 
   const handleSearch = () => {
-    navigate(`/jobs?search=${search}&governorate=${governorate}`)
+    navigate(`/jobs?search=${encodeURIComponent(search)}&governorate=${encodeURIComponent(governorate)}`)
   }
+
+  // نبني قائمة أبرز الشركات من بيانات /api/jobs/ الحقيقية (ما في endpoint مستقل للشركات حالياً)
+  const featuredCompanies = useMemo(() => {
+    const byCompany = new Map()
+
+    jobs.forEach(job => {
+      const name = job.company_name?.trim()
+      if (!name) return
+      if (!byCompany.has(name)) {
+        byCompany.set(name, { name, jobsCount: 0 })
+      }
+      byCompany.get(name).jobsCount += 1
+    })
+
+    return Array.from(byCompany.values())
+      .sort((a, b) => b.jobsCount - a.jobsCount)
+      .slice(0, 6)
+      .map((company, index) => ({
+        ...company,
+        logo: company.name.slice(0, 2),
+        color: COMPANY_COLORS[index % COMPANY_COLORS.length],
+      }))
+  }, [jobs])
+
+  // نفس منطق تجميع الشركات فوق، بس بدون تحديد بـ6 -- لحساب العدد الحقيقي بالإحصائيات
+  const totalCompaniesCount = useMemo(() => {
+    const names = new Set(jobs.map(job => job.company_name?.trim()).filter(Boolean))
+    return names.size
+  }, [jobs])
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gray-50" dir={textDir}>
@@ -141,8 +198,8 @@ transition={{
             className="text-sm px-3 py-2 outline-none text-gray-500 bg-transparent border-r border-gray-200"
           >
             <option value="">{t("home.all_governorates")}</option>
-            {["دمشق", "حلب", "حمص", "حماة", "اللاذقية", "طرطوس", "درعا", "إدلب"].map(g => (
-              <option key={g} value={g}>{g}</option>
+            {GOVERNORATES.map(g => (
+              <option key={g.value} value={g.value}>{g.label}</option>
             ))}
           </select>
           <button
@@ -156,9 +213,8 @@ transition={{
         {/* Stats */}
         <div className="flex justify-center gap-12 relative mt-10">
           {[
-  { num: 2000, label: t("home.stat_jobs") },
-  { num: 100, label: t("home.stat_companies") },
-  { num: 10000, label: t("home.stat_seekers") },
+  { num: jobs.length, label: t("home.stat_jobs") },
+  { num: totalCompaniesCount, label: t("home.stat_companies") },
 ].map((s) => (
             <div key={s.label} className="text-center">
               <strong className="block text-xl text-white"><Counter from={0} to={s.num} /></strong>
@@ -171,8 +227,8 @@ transition={{
 </div>
       </motion.div>
 
-      {/* ===== قسم حسب حالة المستخدم ===== */}
-      {isLoggedIn ? (
+      {/* ===== قسم حسب حالة المستخدم (يظهر فقط للمسجلين) ===== */}
+      {isLoggedIn && (
         <motion.section
     initial={{ opacity: 0, y: 70 }}
     whileInView={{ opacity: 1, y: 0 }}
@@ -233,8 +289,10 @@ duration-300 transition">
 
           </div>
         </motion.section>
-      ) : (
-        <motion.section
+      )}
+
+      {/* ===== تصفح حسب التخصص (يظهر دائماً بغض النظر عن حالة تسجيل الدخول) ===== */}
+      <motion.section
     initial={{ opacity: 0, y: 70 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
@@ -247,25 +305,40 @@ duration-300 transition">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-medium text-gray-900">{t("home.browse_by_category")}</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat.key}
-                onClick={() => navigate(`/jobs?category=${cat.key}`)}
-                className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:-translate-y-2
+          {specializationsLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col items-center gap-2 animate-pulse">
+                  <div className="w-6 h-6 rounded bg-gray-100" />
+                  <div className="h-3 bg-gray-100 rounded w-3/4" />
+                </div>
+              ))}
+            </div>
+          ) : specializationsError ? (
+            <p className="text-sm text-red-400 text-center py-10">{t("home.load_error")}</p>
+          ) : specializations.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-10">{t("home.no_jobs")}</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {specializations.map((spec, index) => {
+                return (
+                 <button
+                  key={spec.id}
+                  onClick={() => navigate(`/jobs?category=${spec.id}`)}
+                  className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:-translate-y-2
 hover:shadow-2xl
 hover:scale-[1.02]
 transition-all
 duration-300 hover:shadow-sm transition flex flex-col items-center gap-2"
-              >
-                <span style={{ fontSize: "24px" }}>{cat.icon}</span>
-                <span className="text-xs font-medium text-gray-700">{isAr ? cat.ar : cat.en}</span>
-              </button>
-            ))}
-          </div>
-          </motion.section>
-       
-      )}
+                >
+                 
+                  <span className="text-xs font-medium text-gray-700">{isAr ? spec.name_ar : spec.name_en}</span>
+                </button>
+                )
+              })}
+            </div>
+          )}
+      </motion.section>
 
       {/* ===== أحدث الوظائف ===== */}
       <motion.section
@@ -284,7 +357,7 @@ duration-300 hover:shadow-sm transition flex flex-col items-center gap-2"
             onClick={() => navigate("/jobs")}
             className="text-sm text-blue-600 cursor-pointer hover:underline"
           >
-            {t("home.see_all")} ←
+            {t("home.see_all")} 
           </span>
         </div>
 
@@ -303,6 +376,8 @@ duration-300 hover:shadow-sm transition flex flex-col items-center gap-2"
               </div>
             ))}
           </div>
+        ) : jobsError ? (
+          <p className="text-sm text-red-400 text-center py-10">{t("home.load_error")}</p>
         ) : jobs.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-10">{t("home.no_jobs")}</p>
         ) : (
@@ -372,47 +447,64 @@ duration-300 transition"
             onClick={() => navigate("/companies")}
             className="text-sm text-blue-600 cursor-pointer hover:underline"
           >
-            {t("home.see_all")} ←
+            {t("home.see_all")} 
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURED_COMPANIES.map(company => (
-            <div
-              key={company.id}
-              onClick={() => navigate(`/companies/${company.id}`)}
-              className="bg-white border border-gray-100 rounded-xl p-5 cursor-pointer hover:-translate-y-2
+        {jobsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center gap-4 animate-pulse">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-100 rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-gray-100 rounded w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : jobsError ? (
+          <p className="text-sm text-red-400 text-center py-10">{t("home.load_error")}</p>
+        ) : featuredCompanies.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-10">{t("home.no_jobs")}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {featuredCompanies.map(company => (
+              <div
+                key={company.name}
+                onClick={() => navigate(`/jobs?search=${encodeURIComponent(company.name)}`)}
+                className="bg-white border border-gray-100 rounded-xl p-5 cursor-pointer hover:-translate-y-2
 hover:shadow-2xl
 hover:scale-[1.02]
 transition-all
 duration-300 transition flex items-center gap-4"
-            >
-              {/* أيقونة الشركة */}
-              <div className={`w-12 h-12 rounded-xl ${company.color} flex items-center justify-center text-2xl flex-shrink-0`}>
-                {company.logo}
-              </div>
+              >
+                {/* أيقونة الشركة */}
+                <div className={`w-12 h-12 rounded-xl ${company.color} flex items-center justify-center text-sm font-medium text-gray-700 flex-shrink-0`}>
+                  {company.logo}
+                </div>
 
-              {/* معلومات الشركة */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {isAr ? company.name_ar : company.name_en}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {isAr ? company.industry_ar : company.industry_en}
-                </p>
-              </div>
+                {/* معلومات الشركة */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {company.name}
+                  </p>
+                </div>
 
-              {/* عدد الوظائف */}
-              <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 flex-shrink-0">
-                {isAr ? company.jobs_ar : company.jobs_en}
-              </span>
-            </div>
-          ))}
-        </div>
+                {/* عدد الوظائف */}
+                <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 flex-shrink-0">
+                  {company.jobsCount} {isAr
+                    ? (company.jobsCount === 1 ? "وظيفة" : "وظائف")
+                    : (company.jobsCount === 1 ? "Job" : "Jobs")}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </motion.section>
 
       {/* ===== Footer ===== */}
       <footer className="bg-[#1e3a5f] px-10 py-8 text-center">
-        <p className="text-xs text-white/40">© 2025 JobPortal · {t("home.rights")}</p>
+        <p className="text-xs text-white/40">© {new Date().getFullYear()} JobPortal · {t("home.rights")}</p>
       </footer>
 
     </div>

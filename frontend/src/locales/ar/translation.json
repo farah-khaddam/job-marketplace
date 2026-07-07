@@ -181,7 +181,8 @@
   "status_pending": "قيد المراجعة",
   "latest_jobs": "أحدث الوظائف",
   "see_all": "عرض الكل",
-  "rights": "جميع الحقوق محفوظة"
+  "rights": "جميع الحقوق محفوظة",
+  "load_error": "تعذر تحميل البيانات، حاول مرة تانية" 
 },
 "company": {
     "layout": {
@@ -209,11 +210,11 @@
       },
       "recent_apps": {
         "title": "آخر الطلبات الواردة",
-        "view_all": "عرض الكل ←"
+        "view_all": "عرض الكل "
       },
       "active_jobs": {
         "title": "الوظائف النشطة",
-        "view_all": "عرض الكل ←",
+        "view_all": "عرض الكل ",
         "applicants": "متقدم",
         "views": "مشاهدة"
       },

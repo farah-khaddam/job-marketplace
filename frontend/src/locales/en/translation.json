@@ -175,7 +175,8 @@
   "status_pending": "Under review",
   "latest_jobs": "Latest jobs",
   "see_all": "See all",
-  "rights": "All rights reserved"
+  "rights": "All rights reserved",
+  "load_error": "Failed to load data, please try again"
 },
 "company": {
     "layout": {
@@ -203,11 +204,11 @@
       },
       "recent_apps": {
         "title": "Recent Applications",
-        "view_all": "View all →"
+        "view_all": "View all "
       },
       "active_jobs": {
         "title": "Active Jobs",
-        "view_all": "View all →",
+        "view_all": "View all ",
         "applicants": "applicants",
         "views": "views"
       },

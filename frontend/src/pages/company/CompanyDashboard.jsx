@@ -1,45 +1,110 @@
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import CompanyLayout from "../../components/company/CompanyLayout"
 
-// ===== Mock Data =====
-const MOCK_STATS = [
-  { key: "active_jobs",    value: 8,    icon: "💼", bg: "bg-blue-50",    border: "border-blue-100" },
-  { key: "total_apps",     value: 143,  icon: "📩", bg: "bg-violet-50",  border: "border-violet-100" },
-  { key: "pending_review", value: 27,   icon: "⏳", bg: "bg-amber-50",   border: "border-amber-100" },
-  { key: "total_views",    value: 2840, icon: "👁️", bg: "bg-teal-50",    border: "border-teal-100" },
-]
+// ===== Lookup tables (same values used in PostJob.jsx) =====
+const JOB_TYPE_LABELS = {
+  full_time:  { ar: "دوام كامل", en: "Full Time"  },
+  part_time:  { ar: "دوام جزئي", en: "Part Time"  },
+  contract:   { ar: "عقد مؤقت",  en: "Contract"   },
+  internship: { ar: "تدريب",     en: "Internship" },
+  freelance:  { ar: "عمل حر",    en: "Freelance"  },
+}
 
-const MOCK_RECENT_APPS = [
-  { id: 1, name: "أحمد الخطيب",   job_ar: "مطور Frontend", job_en: "Frontend Developer", time_ar: "منذ ساعتين",  time_en: "2h ago",    status: "pending",  initials: "أخ" },
-  { id: 2, name: "سارة نور",      job_ar: "مصمم UI/UX",    job_en: "UI/UX Designer",     time_ar: "منذ 5 ساعات", time_en: "5h ago",    status: "reviewed", initials: "سن" },
-  { id: 3, name: "محمد الاحمد", job_ar: "مطور Backend",  job_en: "Backend Developer",  time_ar: "أمس",         time_en: "Yesterday", status: "accepted", initials: "مب" },
-  { id: 4, name: "لينا الحسن",    job_ar: "مطور Frontend", job_en: "Frontend Developer", time_ar: "منذ يومين",   time_en: "2d ago",    status: "rejected", initials: "لح" },
-]
-
-const MOCK_ACTIVE_JOBS = [
-  { id: 1, title_ar: "مطور Frontend", title_en: "Frontend Developer", apps: 34, views: 820,  days_left_ar: "12 يوم متبقي",  days_left_en: "12d left" },
-  { id: 2, title_ar: "مصمم UI/UX",    title_en: "UI/UX Designer",     apps: 21, views: 540,  days_left_ar: "7 أيام متبقية", days_left_en: "7d left"  },
-  { id: 3, title_ar: "مطور Backend",  title_en: "Backend Developer",  apps: 18, views: 390,  days_left_ar: "20 يوم متبقي",  days_left_en: "20d left" },
-]
-
-const STATUS_STYLES = {
-  pending:  "bg-amber-50 text-amber-700 border-amber-100",
-  reviewed: "bg-blue-50 text-blue-700 border-blue-100",
-  accepted: "bg-green-50 text-green-700 border-green-100",
-  rejected: "bg-red-50 text-red-600 border-red-100",
+const CITY_LABELS = {
+  damascus:       "دمشق",
+  aleppo:         "حلب",
+  homs:           "حمص",
+  latakia:        "اللاذقية",
+  tartus:         "طرطوس",
+  hama:           "حماة",
+  deir_ezzor:     "دير الزور",
+  raqqa:          "الرقة",
+  suwayda:        "السويداء",
+  daraa:          "درعا",
+  idlib:          "إدلب",
+  hasakah:        "الحسكة",
+  quneitra:       "القنيطرة",
+  rural_damascus: "ريف دمشق",
 }
 
 const QUICK_ACTIONS = [
-  { icon: "📋", key: "manage_jobs",    path: "/company/jobs" },
-  { icon: "👥", key: "review_apps",   path: "/company/applications" },
+  { icon: "📋", key: "manage_jobs",     path: "/company/jobs" },
+  { icon: "👥", key: "review_apps",     path: "/company/applications" },
   { icon: "🏢", key: "company_profile", path: "/company/profile" },
 ]
+
+// ── helper: days left until expires_at ───────────────────
+function daysLeft(expiresAt) {
+  if (!expiresAt) return null
+  const diffMs = new Date(expiresAt).getTime() - Date.now()
+  return Math.max(Math.ceil(diffMs / 86400000), 0)
+}
+
+// ── هل الوظيفة نشطة؟ (status = open, is_active = true, ولسا ما انتهت مدتها) ─
+function isJobActive(job) {
+  // TODO(Farah): عدّلي هون لو أسماء/قيم الحقول مختلفة عن الـ response الفعلي
+  if (job.status && job.status !== "open") return false
+  if (job.is_active === false) return false
+  if (job.expires_at) {
+    const left = daysLeft(job.expires_at)
+    if (left !== null && left <= 0) return false
+  }
+  return true
+}
 
 export default function CompanyDashboard() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const isAr = i18n.language === "ar"
+
+  const [jobs, setJobs]       = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
+
+  // ── جلب وظائف الشركة من الباك إند ─────────────────────
+  useEffect(() => {
+    const fetchJobs = async () => {
+      console.log("🔵 fetchJobs: starting...")
+      try {
+        const token = localStorage.getItem("token")
+        const res = await fetch("/api/jobs/company/jobs/", {
+          headers: { "Authorization": `CompanyToken ${token}` },
+        })
+        console.log("🔵 fetchJobs: status =", res.status)
+        if (res.ok) {
+          const data = await res.json()
+          console.log("🟢 fetchJobs: data =", data)
+          // TODO(Farah): تأكدي هل الـ response array مباشر أو {results: [...]}
+          setJobs(Array.isArray(data) ? data : data.results || [])
+        } else {
+          const text = await res.text()
+          console.error("🔴 fetchJobs: error response =", text)
+          setError(text)
+        }
+      } catch (err) {
+        console.error("🔴 fetchJobs: network error =", err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchJobs()
+  }, [])
+
+  // ===== وظائف نشطة فقط (بعيد المنتهية والمغلقة) =====
+  const activeJobs = jobs.filter(isJobActive)
+
+  // ===== Stats مبنية من بيانات الوظائف الحقيقية فقط =====
+  // TODO(Farah): total_apps / pending_review / total_views ما إلها endpoint حالياً.
+  // خلّيتهن "-" مؤقتاً لحد ما تجهز نقاط النهاية تبع الطلبات (applications).
+  const STATS = [
+    { key: "active_jobs",    value: activeJobs.length, icon: "💼", bg: "bg-blue-50",   border: "border-blue-100", real: true  },
+    { key: "total_apps",     value: "-",          icon: "📩", bg: "bg-violet-50", border: "border-violet-100", real: false },
+    { key: "pending_review", value: "-",          icon: "⏳", bg: "bg-amber-50",  border: "border-amber-100", real: false },
+    { key: "total_views",    value: "-",          icon: "👁️", bg: "bg-teal-50",   border: "border-teal-100", real: false },
+  ]
 
   return (
     <CompanyLayout>
@@ -66,14 +131,22 @@ export default function CompanyDashboard() {
           </button>
         </div>
 
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+            {t("company.dashboard.load_error")}: {error}
+          </div>
+        )}
+
         {/* ===== Stats ===== */}
         <div className="grid grid-cols-4 gap-4">
-          {MOCK_STATS.map(stat => (
+          {STATS.map(stat => (
             <div key={stat.key} className={`bg-white border rounded-2xl p-5 ${stat.border}`}>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3 ${stat.bg}`}>
                 {stat.icon}
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading && stat.real ? "…" : stat.value}
+              </p>
               <p className="text-xs text-gray-500 mt-1">{t(`company.dashboard.stats.${stat.key}`)}</p>
             </div>
           ))}
@@ -82,7 +155,7 @@ export default function CompanyDashboard() {
         {/* ===== Two Columns ===== */}
         <div className="grid grid-cols-5 gap-6">
 
-          {/* Recent Applications */}
+          {/* Recent Applications — لا يوجد endpoint حالياً */}
           <div className="col-span-3 bg-white border border-gray-100 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
               <h2 className="text-sm font-semibold text-gray-800">
@@ -92,29 +165,16 @@ export default function CompanyDashboard() {
                 {t("company.dashboard.recent_apps.view_all")}
               </button>
             </div>
-            <div className="divide-y divide-gray-50">
-              {MOCK_RECENT_APPS.map(app => (
-                <div key={app.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50/50 transition cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#1e3a5f]/10 text-[#1e3a5f] text-xs font-semibold flex items-center justify-center flex-shrink-0">
-                      {app.initials}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{app.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {isAr ? app.job_ar : app.job_en} · {isAr ? app.time_ar : app.time_en}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_STYLES[app.status]}`}>
-                    {t(`company.status.${app.status}`)}
-                  </span>
-                </div>
-              ))}
+            {/* TODO(Farah): بمجرد ما تجهز رفيقتك endpoint الطلبات، بنجيب هون آخر 4-5 طلبات */}
+            <div className="flex flex-col items-center justify-center py-14 text-center px-6">
+              <div className="text-3xl mb-3">🚧</div>
+              <p className="text-sm text-gray-500">
+                {t("company.dashboard.recent_apps.coming_soon")}
+              </p>
             </div>
           </div>
 
-          {/* Active Jobs */}
+          {/* Active Jobs — مربوطة بـ /api/jobs/company/jobs/ */}
           <div className="col-span-2 bg-white border border-gray-100 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
               <h2 className="text-sm font-semibold text-gray-800">
@@ -124,33 +184,64 @@ export default function CompanyDashboard() {
                 {t("company.dashboard.active_jobs.view_all")}
               </button>
             </div>
+
+            {loading && (
+              <div className="px-6 py-8 text-center text-sm text-gray-400">
+                {t("company.dashboard.loading")}
+              </div>
+            )}
+
+            {!loading && activeJobs.length === 0 && (
+              <div className="px-6 py-8 text-center text-sm text-gray-400">
+                {t("company.dashboard.active_jobs.empty")}
+              </div>
+            )}
+
             <div className="divide-y divide-gray-50">
-              {MOCK_ACTIVE_JOBS.map(job => (
-                <div
-                  key={job.id}
-                  onClick={() => navigate(`/company/jobs/${job.id}/applications`)}
-                  className="px-6 py-4 hover:bg-gray-50/50 transition cursor-pointer"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-900">
-                      {isAr ? job.title_ar : job.title_en}
-                    </p>
-                    <span className="text-xs text-gray-400">
-                      {isAr ? job.days_left_ar : job.days_left_en}
-                    </span>
+              {activeJobs.slice(0, 5).map(job => {
+                // TODO(Farah): عدّلي أسماء الحقول هون لو مختلفة عن الـ response الفعلي
+                const title   = job.title || "-"
+                const city    = CITY_LABELS[job.city] || job.city
+                const empType = JOB_TYPE_LABELS[job.employment_type]
+                const left    = daysLeft(job.expires_at)
+                // apps/views مافي إلهن مصدر حقيقي لسا
+                const apps    = job.applications_count ?? null
+                const views   = job.views_count ?? null
+
+                return (
+                  <div
+                    key={job.id}
+                    onClick={() => navigate(`/company/jobs/${job.id}/applications`)}
+                    className="px-6 py-4 hover:bg-gray-50/50 transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-900">{title}</p>
+                      <span className="text-xs text-gray-400">
+                        {left !== null
+                          ? (isAr ? `${left} يوم متبقي` : `${left}d left`)
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-400 mb-2.5">
+                      <span>{city}{empType ? ` · ${isAr ? empType.ar : empType.en}` : ""}</span>
+                    </div>
+                    {apps !== null && (
+                      <>
+                        <div className="flex items-center gap-4 text-xs text-gray-400 mb-2.5">
+                          <span>{apps} {t("company.dashboard.active_jobs.applicants")}</span>
+                          {views !== null && <span>{views} {t("company.dashboard.active_jobs.views")}</span>}
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${Math.min((apps / 50) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-400 mb-2.5">
-                    <span>{job.apps} {t("company.dashboard.active_jobs.applicants")}</span>
-                    <span>{job.views} {t("company.dashboard.active_jobs.views")}</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full"
-                      style={{ width: `${Math.min((job.apps / 50) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
