@@ -156,6 +156,7 @@ from django import forms
 class EmailVerificationAdminForm(forms.ModelForm):
     APPROVAL_CHOICES = [
         ('', '---------'),
+        ('approved', 'Approved and Create Account'),
         ('pending_admin_approval', 'Pending Admin Approval'),
         ('rejected', 'Rejected'),
     ]
@@ -274,6 +275,37 @@ class EmailVerificationAdmin(admin.ModelAdmin):
 
         # 3. حفظ التعديل الأساسي في قاعدة البيانات أولاً
         super().save_model(request, obj, form, change)
+
+
+        # 👇 ضع هذا المنطق الجديد هنا تماماً لقفل الحساب المعلق وإنشاء الشركة
+        if original_status != 'approved' and new_status == 'approved':
+            if Company.objects.filter(email__iexact=obj.email).exclude(approval_status='rejected').exists():
+                self.message_user(request, f"Cannot approve {obj.email}: an active company with this email already exists.", level='error')
+                new_payload['approval_status'] = original_status
+                obj.payload = new_payload
+                super().save_model(request, obj, form, change)
+                return
+
+            try:
+                company = Company.objects.create(
+                    company_name=new_payload.get('company_name'),
+                    email=obj.email,
+                    phone_number=new_payload.get('phone_number'),
+                    password=new_payload.get('password_hash') or make_password(new_payload.get('password', '')),
+                    governorate=new_payload.get('governorate'),
+                    company_type=new_payload.get('company_type'),
+                    website_url=new_payload.get('website_url', '') or '',
+                    description=new_payload.get('description'),
+                    approval_status='approved',
+                    approval_email_sent=True,
+                )
+                send_company_approval_email(company)
+                obj.delete()  # حذف سجل التحقق كالأكشن تماماً
+                self.message_user(request, f"Successfully created company account for {obj.email}.")
+                return 
+            except Exception as e:
+                logger.error(f"Failed to create company via form save for {obj.email}: {e}")
+                self.message_user(request, f"Error processing approval for {obj.email}.", level='error')
 
         # 4. التحقق وإرسال إيميل الرفض إذا تغيرت الحالة إلى Rejected يدوياً
         if original_status != 'rejected' and new_status == 'rejected':
@@ -461,13 +493,14 @@ class CompanyAdmin(admin.ModelAdmin):
                 send_company_welcome_back_email(obj)
             else:
                 send_company_approval_email(obj)
-       
-        elif original_status != 'rejected' and new_status == 'rejected':
 
-                if original_status == 'approved':
-                    send_company_deactivation_email(obj)
-                else:
-                    send_company_rejection_email(obj)
+        elif original_status != 'rejected' and new_status == 'rejected':
+            if original_status == 'approved':
+                # إذا كان الحساب مقبولاً/نشطاً وتم عمل ريجكت له، نرسل إيميل إلغاء التنشيط
+                send_company_deactivation_email(obj)
+            else:
+                # إذا كان معلقاً أو غير ذلك، نرسل إيميل الرفض العادي
+                send_company_rejection_email(obj)
 
     fieldsets = (
         ('Company Information', {'fields': ('company_name', 'email', 'phone_number')}),
