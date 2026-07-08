@@ -80,10 +80,10 @@ const handleGoogleLogin = async (response) => {
 
     if (res.ok) {
      
-    localStorage.setItem("token", data.access_token)
-    localStorage.setItem("refresh_token", data.refresh_token)
-    localStorage.setItem("user", JSON.stringify(data.user))
-      // Redirect based on role if backend provided `user_type`
+
+    localStorage.setItem("token", data.token)
+
+    // Redirect based on role if backend provided `user_type`
     handlePostLoginRedirect(data)
     } 
     else {

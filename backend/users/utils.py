@@ -84,7 +84,7 @@ def send_company_approval_email(company):
         )
     except Exception as e:
         logger.error(f"[send_company_approval_email] Failed to send email to {company.email}: {e}")
-
+        raise
 
 def send_company_rejection_email(company):
     """Notify company that their account registration was rejected."""
