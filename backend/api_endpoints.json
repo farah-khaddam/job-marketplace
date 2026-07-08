@@ -3,6 +3,7 @@
   "generated_from": [
     "backend/jobportal/urls.py",
     "backend/users/urls.py",
+    "backend/company_profile/urls.py",
     "backend/seeker_profiles/urls.py",
     "backend/jobs/urls.py",
     "backend/jobs/routes/public_job_urls.py",
@@ -119,6 +120,16 @@
       "path": "/api/jobs/company/jobs/<int:pk>/",
       "app": "jobs",
       "name": "company_job_detail"
+    },
+    {
+      "path": "/api/company/profile/",
+      "app": "company_profile",
+      "name": "company-profile"
+    },
+    {
+      "path": "/api/company/profile/logo/",
+      "app": "company_profile",
+      "name": "company-logo"
     },
     {
       "path": "/api/seeker/profile/",

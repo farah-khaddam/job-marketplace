@@ -68,6 +68,7 @@ export default function Home() {
   const [specializations, setSpecializations] = useState([])
   const [specializationsLoading, setSpecializationsLoading] = useState(true)
   const [specializationsError, setSpecializationsError] = useState(false)
+  const [seekersCount, setSeekersCount] = useState(null)
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -102,8 +103,22 @@ export default function Home() {
         setSpecializationsLoading(false)
       }
     }
+     const fetchSeekersCount = async () => {
+      try {
+        const res = await fetch("/api/jobseekers/count/")
+        if (res.ok) {
+          const data = await res.json()
+          // نتوقع {"count": N} -- إذا رفيقتك رجعت شكل مختلف لازم نعدل هون
+          setSeekersCount(typeof data.count === "number" ? data.count : null)
+        }
+      } catch (err) {
+        console.error("fetchSeekersCount error:", err)
+      }
+    }
+
     fetchJobs()
     fetchSpecializations()
+    fetchSeekersCount()
   }, [])
 
   const handleSearch = () => {
@@ -215,6 +230,7 @@ transition={{
           {[
   { num: jobs.length, label: t("home.stat_jobs") },
   { num: totalCompaniesCount, label: t("home.stat_companies") },
+  ...(seekersCount !== null ? [{ num: seekersCount, label: t("home.stat_seekers") }] : []),
 ].map((s) => (
             <div key={s.label} className="text-center">
               <strong className="block text-xl text-white"><Counter from={0} to={s.num} /></strong>

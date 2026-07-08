@@ -267,7 +267,45 @@
         "required": "This field is required",
         "expiration_past": "Expiration date must be after today"
       }
-    }
+    },
+    "profile": {
+  "default_title": "Your Company",
+  "completion": "Profile {{percent}}% complete",
+  "change_logo": "Change logo",
+  "upload_logo": "Upload logo",
+  "uploading": "Uploading...",
+  "logo_success": "Logo updated successfully",
+  "loading": "Loading profile...",
+  "load_error": "Failed to load profile",
+  "save_success": "Profile updated successfully",
+  "saving": "Saving...",
+  "save": "Save changes",
+  "basic_info": "Basic Information",
+  "rejection_reason_label": "Rejection reason",
+  "generic_error": "Something went wrong. Please try again.",
+  "cancel_logo": "Cancel",
+  "logo_invalid_type": "Please upload a JPG, PNG, or WebP image.",
+  "logo_too_large": "Logo must be smaller than {{max}}MB.",
+  "unsaved_changes": "Unsaved changes",
+  "rejection_cta": "Please update your information and save again to resubmit for review.",
+  "approval_status": {
+    "pending_admin_approval": "Pending approval",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "fields": {
+    "company_name": "Company Name",
+    "email": "Email",
+    "description": "Description",
+    "company_type": "Company Type",
+    "governorate": "Governorate",
+    "select_governorate": "Select governorate",
+    "website_url": "Website",
+    "phone_number": "Phone Number",
+    "linkedin_url": "LinkedIn",
+    "select_company_type": "Select company type"
+  }
+}
   },
   "seeker": {
     "profile": {

@@ -274,7 +274,45 @@
         "required": "هذا الحقل مطلوب",
         "expiration_past": "تاريخ الانتهاء يجب أن يكون بعد تاريخ اليوم"
       }
-    }
+    },
+    "profile": {
+  "default_title": "شركتك",
+  "completion": "اكتمال البروفايل {{percent}}%",
+  "change_logo": "تغيير الشعار",
+  "upload_logo": "رفع الشعار",
+  "uploading": "جاري الرفع...",
+  "logo_success": "تم تحديث الشعار بنجاح",
+  "loading": "جاري تحميل البروفايل...",
+  "load_error": "فشل تحميل البروفايل",
+  "save_success": "تم حفظ التعديلات بنجاح",
+  "saving": "جاري الحفظ...",
+  "save": "حفظ التعديلات",
+  "basic_info": "المعلومات الأساسية",
+  "generic_error": "صار في خطأ، حاولي مرة ثانية.",
+  "cancel_logo": "إلغاء",
+  "logo_invalid_type": "الرجاء رفع صورة JPG أو PNG أو WebP.",
+  "logo_too_large": "يجب أن يكون حجم الشعار أقل من {{max}} ميجابايت.",
+  "unsaved_changes": "في تعديلات غير محفوظة",
+  "rejection_cta": "يرجى تحديث بياناتك وحفظها مرة أخرى لإعادة الإرسال للمراجعة.",
+  "rejection_reason_label": "سبب الرفض",
+  "approval_status": {
+    "pending_admin_approval": "بانتظار الموافقة",
+    "approved": "معتمدة",
+    "rejected": "مرفوضة"
+  },
+  "fields": {
+    "company_name": "اسم الشركة",
+    "email": "البريد الإلكتروني",
+    "description": "الوصف",
+    "company_type": "نوع الشركة",
+    "governorate": "المحافظة",
+    "select_governorate": "اختاري المحافظة",
+    "website_url": "الموقع الإلكتروني",
+    "phone_number": "رقم الهاتف",
+    "linkedin_url": "لينكدإن",
+    "select_company_type": "اختاري نوع الشركة"
+  }
+}
   },
     "seeker": {
     "profile": {

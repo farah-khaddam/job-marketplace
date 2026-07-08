@@ -13,6 +13,7 @@ import JobListings from "./pages/JobListings"
 import ForgotPassword from "./pages/ForgotPassword"
 import ResetPassword from "./pages/ResetPassword"
 import JobDetails from "./pages/JobDetails"
+import CompanyProfile from "./pages/company/CompanyProfile"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import './App.css'
@@ -42,6 +43,7 @@ function App() {
       <Route path="/seeker/profile" element={<SeekerProfile />} />
       <Route path="/jobs" element={<JobListings />} />
       <Route path="/jobs/:id" element={<JobDetails />} />
+      <Route path="/company/profile" element={<CompanyProfile />} />
     </Routes>
   )
 }
