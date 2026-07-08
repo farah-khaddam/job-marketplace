@@ -175,3 +175,61 @@ def custom_exception_handler(exc, context):
         },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
+def send_company_deactivation_email(company):
+    """Notify company that their account has been deactivated."""
+    subject = 'Your company account has been deactivated'
+    message = (
+        f'Hello {company.company_name},\n\n'
+        'Your company account has been deactivated by the admin team.\n\n'
+        'If you believe this is a mistake, please contact support.'
+    )
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[company.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"[send_company_deactivation_email] Failed to send email to {company.email}: {e}")
+
+
+def send_company_welcome_back_email(company):
+    """Notify company that their account has been reactivated/re-approved."""
+    subject = 'Welcome back! Your company account has been reactivated'
+    message = (
+        f'Hello {company.company_name},\n\n'
+        'Good news! Your company account has been reactivated and approved again.\n\n'
+        'You can now log in using your registered email address.'
+    )
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[company.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"[send_company_welcome_back_email] Failed to send email to {company.email}: {e}")
+
+
+def send_company_deletion_email(company):
+    """Notify company that their account has been deleted."""
+    subject = 'Your company account has been deleted'
+    message = (
+        f'Hello {company.company_name},\n\n'
+        'Your company account has been deleted from our system.\n\n'
+        'If this was a mistake, please contact support.'
+    )
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[company.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"[send_company_deletion_email] Failed to send email to {company.email}: {e}")
