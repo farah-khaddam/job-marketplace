@@ -11,6 +11,7 @@ from .views import (
     password_reset_request,
     password_reset_validate,
     password_reset_confirm,
+    JobSeekerCountView,
 )
  
 urlpatterns = [
@@ -29,4 +30,6 @@ urlpatterns = [
     path("auth/password/reset/", password_reset_request, name="password_reset_request"),
     path("auth/password/reset/validate/", password_reset_validate, name="password_reset_validate"),
     path("auth/password/reset/confirm/", password_reset_confirm, name="password_reset_confirm"),
+    path("jobseekers/count/", JobSeekerCountView.as_view()),
+
 ]

@@ -41,7 +41,7 @@ class SeekerProfile(models.Model):
     governorate = models.CharField(max_length=50, blank=True)
     bio = models.TextField(blank=True)
     cv_file = models.FileField(
-        upload_to="cvs/",
+        upload_to="cvs_upload_path",
         blank=True,
         null=True,
         validators=[validate_cv_file],

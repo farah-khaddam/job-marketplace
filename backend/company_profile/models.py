@@ -9,8 +9,8 @@ class CompanyProfile(models.Model):
 		'users.Company', on_delete=models.CASCADE, related_name='profile'
 	)
 
-	logo = models.ImageField(upload_to='company_logos/', null=True, blank=True)
-	external_logo_url = models.URLField(max_length=500, blank=True, null=True)
+	profile_picture = models.ImageField(upload_to='profile_pictures/',null=True,blank=True)
+	external_picture_url = models.URLField(max_length=500, blank=True, null=True)
 	linkedin_url = models.URLField(max_length=500, blank=True, null=True)
 
 	created_at = models.DateTimeField(auto_now_add=True)

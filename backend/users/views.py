@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import EmailVerification, JobSeeker, Company, GOVERNORATE_CHOICES, COMPANY_TYPE_CHOICES
 from .serializers import (
     JobSeekerOTPRegisterSerializer, VerifyOTPSerializer,
@@ -539,3 +540,8 @@ def company_login(request):
             {'error': 'Company not found'},
             status=status.HTTP_404_NOT_FOUND
         )
+
+class JobSeekerCountView(APIView):
+    def get(self, request):
+        count = JobSeeker.objects.count()
+        return Response({"count": count})

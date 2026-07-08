@@ -10,6 +10,7 @@ from .serializers import (
 )
 
 
+
 class SeekerProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = SeekerProfileSerializer
     authentication_classes = [JobSeekerTokenAuthentication]

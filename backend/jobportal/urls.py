@@ -2,6 +2,9 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from dj_rest_auth.views import PasswordResetConfirmView
 from users.views import api_404_handler
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -23,10 +26,13 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
      path("api/", include("seeker_profiles.urls")),
 
-    # Catch-all 404 — must be LAST
-    re_path(r'^.*$', api_404_handler),
-
-
-   
-
 ]
+
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+urlpatterns += [
+    re_path(r'^.*$', api_404_handler),
+]
+

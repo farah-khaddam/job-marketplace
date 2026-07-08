@@ -13,23 +13,23 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
     description = serializers.CharField(source='company.description')
     approval_status = serializers.CharField(source='company.approval_status', read_only=True)
     rejection_reason = serializers.CharField(source='company.rejection_reason', read_only=True)
-    logo_url = serializers.SerializerMethodField()
+    profile_picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CompanyProfile
         fields = [
             'company_name', 'email', 'phone_number', 'governorate', 'company_type',
             'website_url', 'description', 'approval_status', 'rejection_reason',
-            'logo_url', 'external_logo_url', 'linkedin_url'
+            'profile_picture', 'profile_picture_url', 'external_picture_url', 'linkedin_url'
         ]
 
-    def get_logo_url(self, obj):
-        request = self.context.get('request')
-        if obj.logo and request:
-            return request.build_absolute_uri(obj.logo.url)
-        if obj.external_logo_url:
-            return obj.external_logo_url
-        return None
+    def get_profile_picture_url(self, obj):
+     request = self.context.get('request')
+     if obj.profile_picture and request:
+        return request.build_absolute_uri(obj.profile_picture.url)
+     if obj.external_picture_url:
+        return obj.external_picture_url
+     return None
 
     def validate_company_name(self, value):
         if not value.strip():

@@ -18,27 +18,27 @@ class CompanyProfileView(generics.RetrieveUpdateAPIView):
 		return profile
 
 
-class CompanyLogoUploadView(APIView):
+class CompanyProfilePictureUploadView(APIView):
 	authentication_classes = [CompanyTokenAuthentication]
 	permission_classes = [IsCompanyAuthenticated]
 
 	def post(self, request):
 		profile, _ = CompanyProfile.objects.get_or_create(company=request.auth)
-		file = request.FILES.get('logo')
+		file = request.FILES.get('profile_picture')
 		if not file:
-			return Response({'logo': 'required'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'profile_picture': 'required'}, status=status.HTTP_400_BAD_REQUEST)
 
-		profile.logo = file
+		profile.profile_picture = file
 		try:
 			profile.full_clean()
 		except Exception:
-			return Response({'logo': 'logo_invalid'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'profile_picture': 'profile_picture_invalid'}, status=status.HTTP_400_BAD_REQUEST)
 
 		profile.save()
 		return Response(CompanyProfileSerializer(profile, context={'request': request}).data)
 
 	def delete(self, request):
 		profile = CompanyProfile.objects.filter(company=request.auth).first()
-		if profile and profile.logo:
-			profile.logo.delete(save=True)
+		if profile and profile.profile_picture:
+			profile.profile_picture.delete(save=True)
 		return Response(status=status.HTTP_204_NO_CONTENT)
