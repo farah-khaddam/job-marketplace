@@ -25,7 +25,7 @@ def validate_profile_picture(file):
     ext = os.path.splitext(file.name)[1].lower()
     if ext not in (".jpg", ".jpeg", ".png"):
         raise ValidationError("picture_invalid_type")
-    if file.size > 20 * 1024 * 1024:  
+    if file.size > 2* 1024 * 1024:  
         raise ValidationError("picture_too_large")
 
 def cv_upload_path(instance, filename):

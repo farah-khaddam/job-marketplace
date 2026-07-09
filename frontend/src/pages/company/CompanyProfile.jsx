@@ -61,8 +61,8 @@ function calcCompletion(form, hasLogo) {
 
 // TODO(Farah): تأكدي شكل approval_status الراجع من الباك (pending/approved/rejected؟) — الألوان معمولة inline بالـ JSX تحت
 
-// حدود رفع اللوغو — TODO(Farah): تأكدي الحد الأقصى الفعلي المسموح بالباك (حاليًا افتراض 20MB)
-const MAX_LOGO_SIZE_MB = 20
+// حدود رفع اللوغو — TODO(Farah): تأكدي الحد الأقصى الفعلي المسموح بالباك (حاليًا افتراض 2MB)
+const MAX_LOGO_SIZE_MB = 2
 const ALLOWED_LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 // حد أقصى تقريبي لطول الوصف — TODO(Farah): تأكدي القيمة الفعلية من max_length بالموديل لو موجودة
