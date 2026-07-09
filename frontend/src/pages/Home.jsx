@@ -9,7 +9,6 @@ import {
   useMotionValue,
   useTransform,
 } from "framer-motion";
-import Navbar from "../components/Navbar"
 
 // نفس قيم المحافظات (slugs) المستخدمة بـ JobListings/PostJob وبحقل job.city القادم من الباك اند
 const GOVERNORATES = [
