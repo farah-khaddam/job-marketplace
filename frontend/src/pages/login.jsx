@@ -5,7 +5,7 @@ import LangToggle from "../components/LangToggle"
 import { inputClass, labelClass, btnPrimary } from "../utils/styles"
 import { useTranslation } from "react-i18next"
 
-const API_BASE = "http://localhost:8000/api"
+import { API_BASE } from "../config"
 
 export default function Login() {
   const { t, i18n } = useTranslation()
@@ -65,7 +65,7 @@ function handlePostLoginRedirect(data) {
 //new
 const handleGoogleLogin = async (response) => {
   try {
-    const res = await fetch("http://localhost:8000/api/auth/google/login/", {
+    const res = await fetch(`${API_BASE}/auth/google/login/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

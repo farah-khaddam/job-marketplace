@@ -3,8 +3,7 @@ import { Link } from "react-router-dom"
 import { inputClass, labelClass, btnPrimary } from "../utils/styles"
 import { useTranslation } from "react-i18next"
 import { isEmailFormatValid } from "../utils/validation"
-
-const API_BASE = "http://localhost:8000/api"
+import { API_BASE } from "../config"
 
 export default function ForgotPassword() {
   const { t, i18n } = useTranslation()

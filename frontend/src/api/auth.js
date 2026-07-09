@@ -1,6 +1,6 @@
 import axios from "axios";
-
-const BASE_URL = "http://localhost:8000/api";
+import { API_BASE } from "../config";
+const BASE_URL = API_BASE;
 
 
 export const jobSeekerRegister = (data) =>

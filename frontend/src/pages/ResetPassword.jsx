@@ -4,7 +4,7 @@ import { inputClass, labelClass, btnPrimary } from "../utils/styles"
 import { useTranslation } from "react-i18next"
 import { isPasswordLengthValid } from "../utils/validation"
 
-const API_BASE = "http://localhost:8000/api"
+import { API_BASE } from "../config"
 
 export default function ResetPassword() {
   const { uidb64, token } = useParams()
