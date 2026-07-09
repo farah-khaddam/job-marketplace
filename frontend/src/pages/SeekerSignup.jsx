@@ -5,7 +5,7 @@ import EyeIcon from "../components/EyeIcon"
 import CountryCodeSelect from "../components/CountryCodeSelect"
 import { sanitizePhoneNumber, sanitizeFullName, isEmailFormatValid, isPasswordLengthValid, doPasswordsMatch } from "../utils/validation"
 
-const API_BASE = "http://127.0.0.1:8000"
+import { API_BASE } from "../config"
 const STEPS = { REGISTER: "register", OTP: "otp", SUCCESS: "success" }
 
 export default function SeekerSignup() {
@@ -71,7 +71,7 @@ const handleSubmit = async (e) => {
     if (Object.values(fieldErrors).some(Boolean)) return
     setError(""); setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/auth/job-seeker/register/`, {
+      const res = await fetch(`${API_BASE}/auth/job-seeker/register/`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ full_name: form.fullName, email: form.email, phone_number: `${form.phoneCountryCode}${form.phone}`, password: form.password, password_confirm: form.confirmPassword }),
       })
@@ -105,7 +105,7 @@ if (!res.ok) {
   const handleVerifyOtp = async (e) => {
     e.preventDefault(); setError(""); setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/auth/job-seeker/verify-otp/`, {
+      const res = await fetch(`${API_BASE}/auth/job-seeker/verify-otp/`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, otp }),
       })
@@ -120,7 +120,7 @@ if (!res.ok) {
     if (cooldown > 0) return
     setError(""); setLoading(true)
     try {
-      await fetch(`${API_BASE}/api/auth/job-seeker/register/`, {
+      await fetch(`${API_BASE}/auth/job-seeker/register/`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ full_name: form.fullName, email: form.email, phone_number: `${form.phoneCountryCode}${form.phone}`, password: form.password, password_confirm: form.confirmPassword }),
       })

@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import Navbar from "../components/Navbar"
+import { API_BASE } from "../config"
+import { useNavigate, useSearchParams } from "react-router-dom"
+
 
 // ─── Static option lists (match backend enums) ─────────────────────
 const JOB_TYPES = [
@@ -218,7 +220,7 @@ export default function JobListings() {
     const fetchJobs = async () => {
       setJobsLoading(true)
       try {
-        const res = await fetch("/api/jobs/")
+        const res = await fetch(`${API_BASE}/jobs/`)
         if (res.ok) {
           const data = await res.json()
           setJobs(Array.isArray(data) ? data : data.results || [])
@@ -231,7 +233,7 @@ export default function JobListings() {
     }
     const fetchSpecializations = async () => {
       try {
-        const res = await fetch("/api/jobs/specializations/")
+        const res = await fetch(`${API_BASE}/jobs/specializations/`)
         if (res.ok) {
           const data = await res.json()
           setSpecializations(Array.isArray(data) ? data : data.results || [])

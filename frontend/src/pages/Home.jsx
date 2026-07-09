@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+import Navbar from "../components/Navbar"
+import { API_BASE } from "../config"
 import { useState, useEffect, useMemo } from "react"
 import {
   motion,
@@ -73,7 +75,7 @@ export default function Home() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await fetch("/api/jobs/")
+        const res = await fetch(`${API_BASE}/jobs/`)
         if (res.ok) {
           const data = await res.json()
           setJobs(Array.isArray(data) ? data : data.results || [])
@@ -89,7 +91,7 @@ export default function Home() {
     }
     const fetchSpecializations = async () => {
       try {
-        const res = await fetch("/api/jobs/specializations/")
+        const res = await fetch(`${API_BASE}/jobs/specializations/`)
         if (res.ok) {
           const data = await res.json()
           setSpecializations(Array.isArray(data) ? data : data.results || [])
@@ -105,7 +107,7 @@ export default function Home() {
     }
      const fetchSeekersCount = async () => {
       try {
-        const res = await fetch("/api/jobseekers/count/")
+        const res = await fetch(`${API_BASE}/jobseekers/count/`)
         if (res.ok) {
           const data = await res.json()
           // نتوقع {"count": N} -- إذا رفيقتك رجعت شكل مختلف لازم نعدل هون

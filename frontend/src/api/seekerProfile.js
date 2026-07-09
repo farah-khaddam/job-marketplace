@@ -1,11 +1,11 @@
 import axios from "axios";
-
+import { API_BASE } from "../config";
 // صيغة الـ Authorization مؤكدة من رد الباك إند (WWW-Authenticate: JobSeekerToken)
 const AUTH_PREFIX = "JobSeekerToken";
 
 // baseURL نسبي (مش http://127.0.0.1:8000) عشان يمر عبر Vite proxy المضبوط بـ vite.config.js
 const api = axios.create({
-  baseURL: "/api/seeker/",
+  baseURL: `${API_BASE}/seeker/`,
 });
 
 const authHeaders = (token) => ({

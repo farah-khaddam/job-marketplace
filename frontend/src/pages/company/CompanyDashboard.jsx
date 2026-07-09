@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+import { API_BASE } from "../../config"
 import CompanyLayout from "../../components/company/CompanyLayout"
 
 // ===== Lookup tables (same values used in PostJob.jsx) =====
@@ -69,7 +70,7 @@ export default function CompanyDashboard() {
       console.log("🔵 fetchJobs: starting...")
       try {
         const token = localStorage.getItem("token")
-        const res = await fetch("/api/jobs/company/jobs/", {
+        const res = await fetch(`${API_BASE}/jobs/company/jobs/`, {
           headers: { "Authorization": `CompanyToken ${token}` },
         })
         console.log("🔵 fetchJobs: status =", res.status)

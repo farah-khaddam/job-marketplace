@@ -6,7 +6,7 @@ import CountryCodeSelect from "../components/CountryCodeSelect"
 import { sanitizePhoneNumber } from "../utils/validation"
 import { inputClass, labelClass } from "../utils/styles"
 
-const API_BASE = "http://127.0.0.1:8000"
+import { API_BASE } from "../config"
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 const STEPS = {
@@ -84,7 +84,7 @@ export default function CompanySignup() {
 
   // ─── Fetch choices ──────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch(`${API_BASE}/api/choices/`)
+    fetch(`${API_BASE}/choices/`)
       .then(r => { if (!r.ok) throw new Error("failed"); return r.json() })
       .then(data => {
         if (data.governorates?.length) setGovernorates(data.governorates)
@@ -157,7 +157,7 @@ export default function CompanySignup() {
     setFieldErrors({})
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/auth/company/register/`, {
+      const res = await fetch(`${API_BASE}/auth/company/register/`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ company_name: form.companyName, email: form.email, phone_number: `${form.phoneCountryCode}${form.phone}`, governorate: form.governorate, company_type: form.companyType, website_url: form.website || undefined, description: form.description, password: form.password, password_confirm: form.confirmPassword }),
       })
@@ -196,7 +196,7 @@ export default function CompanySignup() {
     setError("")
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/auth/company/verify-otp/`, {
+      const res = await fetch(`${API_BASE}/auth/company/verify-otp/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, otp }),
@@ -217,7 +217,7 @@ const handleResendOtp = async () => {
   setError("")
   setLoading(true)
   try {
-    const res = await fetch(`${API_BASE}/api/auth/company/register/`, {
+    const res = await fetch(`${API_BASE}/auth/company/register/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

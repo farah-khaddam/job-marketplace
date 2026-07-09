@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import LangToggle from "../components/LangToggle"
 
-const API_BASE = "http://127.0.0.1:8000"
+import { API_BASE } from "../config"
 
 export default function OtpVerification() {
   const { t, i18n } = useTranslation()
@@ -68,8 +68,8 @@ export default function OtpVerification() {
 
     try {
       const endpoint = userType === "company"
-        ? `${API_BASE}/api/auth/company/verify-otp/`
-        : `${API_BASE}/api/auth/job-seeker/verify-otp/`
+        ? `${API_BASE}/auth/company/verify-otp/`
+        : `${API_BASE}/auth/job-seeker/verify-otp/`
 
       const res = await fetch(endpoint, {
         method: "POST",
