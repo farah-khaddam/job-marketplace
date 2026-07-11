@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users.apps.UsersConfig',
     'jobs.apps.JobsConfig',
+    'applications.apps.ApplicationsConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -123,6 +124,9 @@ REST_FRAMEWORK = {
 
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
 CORS_ALLOW_ALL_ORIGINS = True
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
