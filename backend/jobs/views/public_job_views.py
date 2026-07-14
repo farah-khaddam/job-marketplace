@@ -51,7 +51,7 @@ def public_job_list(request):
     if specialization_id:
         queryset = queryset.filter(specialization_id=specialization_id)
 
-    serializer = JobPostingListSerializer(queryset, many=True)
+    serializer = JobPostingListSerializer(queryset, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -71,5 +71,5 @@ def public_job_detail(request, pk):
     JobPosting.objects.filter(pk=job.pk).update(views_count=F('views_count') + 1)
     job.refresh_from_db()
 
-    serializer = JobPostingDetailSerializer(job)
+    serializer = JobPostingDetailSerializer(job, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
