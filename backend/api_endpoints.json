@@ -72,6 +72,12 @@
       "name": "password_reset_confirm"
     },
     {
+      "path": "/api/jobseekers/count/",
+      "app": "users",
+      "name": "jobseeker_count",
+      "methods": ["GET"]
+    },
+    {
       "path": "/api/jobs/",
       "app": "jobs",
       "name": "public_job_list"
@@ -127,9 +133,9 @@
       "name": "company-profile"
     },
     {
-      "path": "/api/company/profile/logo/",
+      "path": "/api/company/profile/picture/",
       "app": "company_profile",
-      "name": "company-logo"
+      "name": "company-profile-picture"
     },
     {
       "path": "/api/seeker/profile/",
