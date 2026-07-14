@@ -145,7 +145,7 @@ export default function CompanyProfile() {
           }
           setForm(loadedForm)
           initialFormRef.current = loadedForm
-          setLogoUrl(data.logo_url || data.external_logo_url || null)
+          setLogoUrl(data.profile_picture_url || data.logo_url || data.external_logo_url || null)
           setApprovalStatus(data.approval_status ?? null)
           setRejectionReason(data.rejection_reason ?? null)
         } else {
@@ -278,11 +278,12 @@ export default function CompanyProfile() {
     setSuccessMsg(null)
     try {
       const fd = new FormData()
-      // TODO(Farah): تأكدي اسم الحقل يلي الباك متوقعه بالـ FormData (logo؟ image؟ file؟)
-      fd.append("logo", logoFile)
+      // ✅ تأكدنا: الباك متوقع اسم الحقل "profile_picture" مش "logo"
+      fd.append("profile_picture", logoFile)
 
-      const res = await fetch("/api/company/profile/logo/", {
-        method: "POST", // TODO(Farah): تأكدي إذا PUT بدل POST
+      // ✅ صار المسار الصحيح حسب api_endpoints.json (كان /logo/ وهاد مش موجود أصلاً بالباك)
+      const res = await fetch("/api/company/profile/picture/", {
+        method: "POST", // TODO(Farah): تأكدي إذا PUT/PATCH بدل POST حسب الـ view
         headers: { "Authorization": `CompanyToken ${token}` }, // ما نحط Content-Type يدوياً مع FormData
         body: fd,
       })
@@ -290,18 +291,22 @@ export default function CompanyProfile() {
       if (res.ok) {
         const data = await res.json()
         console.log("🟢 uploadLogo: data =", data)
-        setLogoUrl(data.logo_url || data.logo || logoPreview)
+        setLogoUrl(data.profile_picture_url || data.logo_url || data.logo || logoPreview)
         setLogoFile(null)
         setSuccessMsg(t("company.profile.logo_success"))
       } else {
         const text = await res.text()
         console.error("🔴 uploadLogo: error response =", text)
-        const { generalMessage } = parseApiError(text)
-        setLogoError(generalMessage || t("company.profile.generic_error"))
+        const { fieldErrors: logoFieldErrors, generalMessage } = parseApiError(text)
+        // بدل ما نطلّع دايماً الرسالة العامة، منعرض تفاصيل أي حقل رجعو فيه خطأ (مثلاً اسم الحقل بالـ FormData غلط)
+        const detail = generalMessage
+          || Object.entries(logoFieldErrors).map(([field, msg]) => `${field}: ${msg}`).join(" | ")
+        setLogoError(detail || t("company.profile.generic_error"))
       }
     } catch (err) {
       console.error("🔴 uploadLogo: network error =", err)
-      setError(err.message)
+      // ✅ كانت هون setError() غلط - هيك كانت رسالة رفع اللوغو عم تطلع تحت بانر "فشل تحميل البروفايل"
+      setLogoError(err.message)
     } finally {
       setUploadingLogo(false)
     }

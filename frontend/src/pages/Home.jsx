@@ -55,6 +55,40 @@ function Counter({ from = 0, to }) {
   return <motion.span>{rounded}</motion.span>;
 }
 
+// TODO(Farah): تأكدي اسم الحقل الفعلي يلي راجع من /api/jobs/ للوغو الشركة (شوفي Network tab)
+// جربنا هون أكتر من احتمال شائع، وإذا ولا واحد منهن صح بس بدّليه بالاسم الصح
+function getCompanyLogo(job) {
+  return (
+    job.company_logo_url ||
+    job.company_logo ||
+    job.company?.profile_picture_url ||
+    job.company?.logo_url ||
+    null
+  )
+}
+
+// ── أفاتار الشركة: بيعرض اللوغو الحقيقي، وإذا مافي أو فشل تحميله بيرجع للأحرف الأولى ─────
+function CompanyAvatar({ name, logoUrl, imgSize = "w-12 h-12", rounded = "rounded-xl", fallbackClassName = "bg-blue-50 text-gray-700 text-sm" }) {
+  const [imgError, setImgError] = useState(false)
+  const initials = name?.slice(0, 2) || "?"
+
+  if (logoUrl && !imgError) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name}
+        onError={() => setImgError(true)}
+        className={`${imgSize} ${rounded} object-cover flex-shrink-0 border border-gray-100 bg-white`}
+      />
+    )
+  }
+  return (
+    <div className={`${imgSize} ${rounded} flex items-center justify-center font-medium flex-shrink-0 ${fallbackClassName}`}>
+      {initials}
+    </div>
+  )
+}
+
 export default function Home() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -69,7 +103,7 @@ export default function Home() {
   const [specializations, setSpecializations] = useState([])
   const [specializationsLoading, setSpecializationsLoading] = useState(true)
   const [specializationsError, setSpecializationsError] = useState(false)
-  const [seekersCount, setSeekersCount] = useState(null)
+  const [seekersCount, setSeekersCount] = useState(0)
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -134,9 +168,11 @@ export default function Home() {
       const name = job.company_name?.trim()
       if (!name) return
       if (!byCompany.has(name)) {
-        byCompany.set(name, { name, jobsCount: 0 })
+        byCompany.set(name, { name, jobsCount: 0, logoUrl: null })
       }
-      byCompany.get(name).jobsCount += 1
+      const entry = byCompany.get(name)
+      entry.jobsCount += 1
+      if (!entry.logoUrl) entry.logoUrl = getCompanyLogo(job)
     })
 
     return Array.from(byCompany.values())
@@ -144,7 +180,6 @@ export default function Home() {
       .slice(0, 6)
       .map((company, index) => ({
         ...company,
-        logo: company.name.slice(0, 2),
         color: COMPANY_COLORS[index % COMPANY_COLORS.length],
       }))
   }, [jobs])
@@ -231,7 +266,7 @@ transition={{
           {[
   { num: jobs.length, label: t("home.stat_jobs") },
   { num: totalCompaniesCount, label: t("home.stat_companies") },
-  ...(seekersCount !== null ? [{ num: seekersCount, label: t("home.stat_seekers") }] : []),
+  { num: seekersCount, label: t("home.stat_seekers") },
 ].map((s) => (
             <div key={s.label} className="text-center">
               <strong className="block text-xl text-white"><Counter from={0} to={s.num} /></strong>
@@ -410,9 +445,13 @@ transition-all
 duration-300 transition"
               >
                 <div className="flex justify-between items-start mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-800 text-xs font-medium">
-                    {job.company_name?.slice(0, 2)}
-                  </div>
+                  <CompanyAvatar
+                    name={job.company_name}
+                    logoUrl={getCompanyLogo(job)}
+                    imgSize="w-10 h-10"
+                    rounded="rounded-lg"
+                    fallbackClassName="bg-blue-50 text-blue-800 text-xs"
+                  />
                   <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-800">
                     {job.employment_type_label}
                   </span>
@@ -496,9 +535,13 @@ transition-all
 duration-300 transition flex items-center gap-4"
               >
                 {/* أيقونة الشركة */}
-                <div className={`w-12 h-12 rounded-xl ${company.color} flex items-center justify-center text-sm font-medium text-gray-700 flex-shrink-0`}>
-                  {company.logo}
-                </div>
+                <CompanyAvatar
+                  name={company.name}
+                  logoUrl={company.logoUrl}
+                  imgSize="w-12 h-12"
+                  rounded="rounded-xl"
+                  fallbackClassName={`${company.color} text-gray-700 text-sm`}
+                />
 
                 {/* معلومات الشركة */}
                 <div className="flex-1 min-w-0">

@@ -235,8 +235,48 @@
     },
     "jobs": {
       "days_left": "يوم متبقي",
-      "days_left_plural": "أيام متبقية"
-    },
+      "days_left_plural": "أيام متبقية",
+      "title": "إدارة الوظائف",
+      "subtitle": "لديك {{count}} وظيفة منشورة",
+      "post_new": "نشر وظيفة",
+      "load_error": "تعذر تحميل الوظائف",
+      "action_error": "حدث خطأ",
+      "loading": "جاري التحميل...",
+      "empty": "ما في وظائف بهاد التصنيف",
+      "search_placeholder": "بحث عن وظيفة...",
+      "tabs": {
+        "all": "الكل",
+        "active": "نشطة",
+        "closed": "مغلقة",
+        "expired": "منتهية"
+      },
+      "columns": {
+        "job": "الوظيفة",
+        "status": "الحالة",
+        "applicants": "المتقدمين",
+        "expires": "الانتهاء",
+        "actions": "إجراءات"
+      },
+      "status": {
+        "active": "نشطة",
+        "closed": "مغلقة",
+        "expired": "منتهية"
+      },
+      "actions": {
+        "view": "عرض المتقدمين",
+        "edit": "تعديل",
+        "close": "إغلاق",
+        "reactivate": "إعادة فتح",
+        "delete": "حذف"
+      },
+      "delete_modal": {
+        "title": "حذف الوظيفة؟",
+        "body": " سيتم حذف \"{{title}}\" هذا الإجراء لا يمكن التراجع عنه.",
+        "cancel": "إلغاء",
+        "confirm": "حذف",
+        "deleting": "جاري الحذف..."
+      }
+  },
       "post_job": {
       "title": "نشر وظيفة جديدة",
       "subtitle": "أكمل البيانات التالية لنشر الوظيفة",

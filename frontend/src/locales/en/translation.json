@@ -228,7 +228,47 @@
       "rejected": "Rejected"
     },
     "jobs": {
-      "days_left": "days left"
+      "days_left": "days left",
+       "title": "Manage Jobs",
+      "subtitle": "You have {{count}} posted jobs",
+      "post_new": "Post a Job",
+      "load_error": "Couldn't load jobs",
+      "action_error": "Something went wrong",
+      "loading": "Loading...",
+      "empty": "No jobs in this category",
+      "search_placeholder": "Search jobs...",
+      "tabs": {
+        "all": "All",
+        "active": "Active",
+        "closed": "Closed",
+        "expired": "Expired"
+    },
+     "columns": {
+        "job": "Job",
+        "status": "Status",
+        "applicants": "Applicants",
+        "expires": "Expires",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "closed": "Closed",
+        "expired": "Expired"
+      },
+      "actions": {
+        "view": "View applicants",
+        "edit": "Edit",
+        "close": "Close",
+        "reactivate": "Reactivate",
+        "delete": "Delete"
+      },
+      "delete_modal": {
+        "title": "Delete this job?",
+        "body": "\"{{title}}\" will be permanently deleted. This can't be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "deleting": "Deleting..."
+      }
     },
     "post_job": {
       "title": "Post a New Job",
