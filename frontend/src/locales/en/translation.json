@@ -442,5 +442,13 @@
   "posted_on": "Posted on",
   "expires_on": "Expires on",
   "views": "Views"
+},
+"companies": {
+  "title": "Our Companies",
+  "subtitle": "{{count}} companies posting jobs on the platform",
+  "search_placeholder": "Search for a company...",
+  "load_error": "Couldn't load companies",
+  "empty": "No companies registered yet",
+  "no_results": "No company found with that name"
 }
 }
