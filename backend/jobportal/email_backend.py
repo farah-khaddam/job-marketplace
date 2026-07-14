@@ -8,24 +8,20 @@ class EmailBackend(DjangoSMTPBackend):
         if self.connection:
             return False
         try:
-            # اتصال IPv4 فقط، لتفادي تعليق IPv6 على Render
+            self.connection = smtplib.SMTP(timeout=self.timeout)
+            # نجبر الاتصال يستخدم IPv4 فقط
             addr_info = socket.getaddrinfo(
                 self.host, self.port, socket.AF_INET, socket.SOCK_STREAM
             )
-            af, socktype, proto, canonname, sa = addr_info[0]
-            sock = socket.socket(af, socktype, proto)
-            sock.settimeout(self.timeout)
-            sock.connect(sa)
-
-            self.connection = smtplib.SMTP()
+            self.connection._host = self.host
+            sock = socket.create_connection(addr_info[0][4], timeout=self.timeout)
             self.connection.sock = sock
             self.connection.file = sock.makefile("rb")
-            code, msg = self.connection.getreply()
+            (code, msg) = self.connection.getreply()
             if code != 220:
                 self.connection.close()
                 raise smtplib.SMTPConnectError(code, msg)
             self.connection.ehlo()
-
             if self.use_tls:
                 self.connection.starttls()
                 self.connection.ehlo()
