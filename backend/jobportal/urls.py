@@ -12,6 +12,7 @@ urlpatterns = [
     # Your app's API routes
     path('api/', include('users.urls')),
     path('api/jobs/', include('jobs.urls')),
+    path('api/recommendations/', include('recommendations.urls')),
 
     path("api/", include("company_profile.urls")),
 

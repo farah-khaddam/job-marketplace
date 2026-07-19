@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
+from django.core.mail import get_connection
 from rest_framework.response import Response
 from rest_framework import status
 from seeker_profiles.models import SeekerProfile, generate_gravatar_url  
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def generate_otp():
+    if getattr(settings, 'DEBUG', False):
+        return '123456'
     return '{:06d}'.format(secrets.randbelow(1000000))
 
 
@@ -50,9 +53,15 @@ def send_verification_email(email, otp):
         msg.send()
     except SMTPException as e:
         logger.error(f"Email sending failed: {str(e)}")
+        if getattr(settings, 'DEBUG', False):
+            logger.warning("SMTP failed in DEBUG mode. Continuing without failing the registration flow.")
+            return None
         raise
     except Exception as e:
         logger.error(f"Unexpected email error: {str(e)}")
+        if getattr(settings, 'DEBUG', False):
+            logger.warning("Unexpected email error in DEBUG mode. Continuing without failing the registration flow.")
+            return None
         raise
 
 

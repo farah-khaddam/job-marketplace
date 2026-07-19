@@ -1,23 +1,21 @@
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APIClient
 from rest_framework import status
+from rest_framework.test import APIClient
 
 from jobs.models import JobPosting
 from jobs.models.specialization import Specialization
-from users.models import Company, JobSeeker
 from seeker_profiles.models import JobSeekerAuthToken
-from .models import JobApplication
+from users.models import Company, JobSeeker
 
 
-class JobApplicationAPITests(TestCase):
+class RecommendationAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
-
         self.company = Company.objects.create(
-            company_name='Test Company',
-            email='company@example.com',
-            phone_number='+963991234567',
+            company_name='Rec Company',
+            email='rec@example.com',
+            phone_number='+963991234589',
             password='secret123',
             governorate='damascus',
             company_type='programming',
@@ -29,7 +27,7 @@ class JobApplicationAPITests(TestCase):
         self.job = JobPosting.objects.create(
             company=self.company,
             title='Python Developer',
-            description='Need Python dev',
+            description='Build backend services with Python',
             specialization=self.specialization,
             city='damascus',
             employment_type='full_time',
@@ -38,29 +36,26 @@ class JobApplicationAPITests(TestCase):
             expires_at='2099-12-31',
             is_active=True,
         )
-
         self.job_seeker = JobSeeker.objects.create(
-            full_name='Test Seeker',
-            email='seeker@example.com',
-            phone_number='+963991234568',
+            full_name='Python Developer',
+            email='developer@example.com',
+            phone_number='+963991234590',
             password='secret123',
             is_active=True,
         )
+        from seeker_profiles.models import SeekerProfile
+
+        self.seeker_profile = SeekerProfile.objects.create(
+            user=self.job_seeker,
+            bio='I love Python backend development and Django.',
+            governorate='damascus',
+        )
         self.token = JobSeekerAuthToken.objects.create(job_seeker=self.job_seeker)
 
-    def test_job_seeker_can_apply_for_job(self):
+    def test_recommendations_return_ranked_jobs(self):
         self.client.credentials(HTTP_AUTHORIZATION=f'JobSeekerToken {self.token.key}')
-        response = self.client.post(reverse('job-apply', kwargs={'job_id': self.job.id}))
+        response = self.client.get(reverse('recommended-jobs'))
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(JobApplication.objects.count(), 1)
-        self.assertEqual(JobApplication.objects.first().job_seeker, self.job_seeker)
-        self.assertEqual(JobApplication.objects.first().job_posting, self.job)
-
-    def test_duplicate_application_is_rejected(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f'JobSeekerToken {self.token.key}')
-        self.client.post(reverse('job-apply', kwargs={'job_id': self.job.id}))
-        response = self.client.post(reverse('job-apply', kwargs={'job_id': self.job.id}))
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(JobApplication.objects.count(), 1)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(isinstance(response.json(), list))
+        self.assertGreaterEqual(len(response.json()), 1)
