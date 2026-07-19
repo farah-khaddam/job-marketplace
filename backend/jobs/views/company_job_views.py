@@ -28,7 +28,7 @@ def company_jobs_list_create(request):
 
     if request.method == 'GET':
         jobs = JobPosting.objects.filter(company=company).select_related('specialization')
-        serializer = CompanyJobPostingSerializer(jobs, many=True)
+        serializer = CompanyJobPostingSerializer(jobs, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     serializer = JobPostingCreateSerializer(
@@ -39,7 +39,7 @@ def company_jobs_list_create(request):
     job = serializer.save()
     job = JobPosting.objects.select_related('specialization', 'company').get(pk=job.pk)
     return Response(
-        CompanyJobPostingSerializer(job).data,
+        CompanyJobPostingSerializer(job, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
     )
 
@@ -64,7 +64,10 @@ def company_job_detail(request, pk):
         return Response({'error': 'Job not found'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
-        return Response(CompanyJobPostingSerializer(job).data, status=status.HTTP_200_OK)
+        return Response(
+            CompanyJobPostingSerializer(job, context={'request': request}).data,
+            status=status.HTTP_200_OK,
+        )
 
     if request.method == 'DELETE':
         job.delete()
@@ -77,4 +80,7 @@ def company_job_detail(request, pk):
     serializer = JobPostingUpdateSerializer(job, data=request.data, partial=partial)
     serializer.is_valid(raise_exception=True)
     job = serializer.save()
-    return Response(CompanyJobPostingSerializer(job).data, status=status.HTTP_200_OK)
+    return Response(
+        CompanyJobPostingSerializer(job, context={'request': request}).data,
+        status=status.HTTP_200_OK,
+    )

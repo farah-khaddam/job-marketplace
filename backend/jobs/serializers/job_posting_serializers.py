@@ -109,6 +109,7 @@ class JobPostingListSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.company_name', read_only=True)
     city_label = serializers.SerializerMethodField()
     employment_type_label = serializers.SerializerMethodField()
+    company_logo_url = serializers.SerializerMethodField()
     work_mode_label = serializers.SerializerMethodField()
     status_label = serializers.SerializerMethodField()
 
@@ -118,6 +119,7 @@ class JobPostingListSerializer(serializers.ModelSerializer):
             'id',
             'title',
             'company_name',
+            'company_logo_url',
             'specialization',
             'city',
             'city_label',
@@ -131,7 +133,21 @@ class JobPostingListSerializer(serializers.ModelSerializer):
             'created_at',
             'views_count',
         ]
+    def get_company_logo_url(self, obj):
+        profile = getattr(obj.company, 'profile', None)
+        if not profile:
+            return None
 
+        if profile.profile_picture:
+            request = self.context.get('request')
+            url = profile.profile_picture.url
+            return request.build_absolute_uri(url) if request else url
+
+        if profile.external_picture_url:
+            return profile.external_picture_url
+
+        return None
+    
     def _label_from_choices(self, obj, field_name):
         field = JobPosting._meta.get_field(field_name)
         return dict(field.choices).get(getattr(obj, field_name), '')
@@ -171,6 +187,7 @@ class JobPostingDetailSerializer(JobPostingListSerializer):
             'company_type': obj.company.company_type,
             'website_url': obj.company.website_url or '',
             'description': obj.company.description,
+            'company_logo_url': self.get_company_logo_url(obj),
         }
 
 
