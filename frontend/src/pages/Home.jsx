@@ -61,9 +61,68 @@ function getCompanyLogo(job) {
     job.company_logo_url ||
     job.company_logo ||
     job.company?.profile_picture_url ||
+    job.company?.external_picture_url ||
     job.company?.logo_url ||
+    job.company?.external_logo_url ||
     null
   )
+}
+
+// نفس القيم المستخدمة بـ PostJob.jsx لتحويل القيم الخام (raw) إلى ليبل معروض
+const JOB_TYPES = [
+  { value: "full_time",  label_ar: "دوام كامل",  label_en: "Full Time"  },
+  { value: "part_time",  label_ar: "دوام جزئي",  label_en: "Part Time"  },
+  { value: "contract",   label_ar: "عقد مؤقت",   label_en: "Contract"   },
+  { value: "internship", label_ar: "تدريب",       label_en: "Internship" },
+  { value: "freelance",  label_ar: "عمل حر",      label_en: "Freelance"  },
+]
+
+const WORK_TYPES = [
+  { value: "onsite",  label_ar: "حضوري",    label_en: "On-site" },
+  { value: "remote",  label_ar: "عن بُعد",  label_en: "Remote"  },
+  { value: "hybrid",  label_ar: "هجين",     label_en: "Hybrid"  },
+]
+
+const labelOf = (arr, val, isAr) => {
+  const found = arr.find(x => x.value === val)
+  if (!found) return val || ""
+  return isAr ? found.label_ar : found.label_en
+}
+
+// ── فلتر أمان: نفس منطق _public_jobs_queryset() بالباك اند (status='open', is_active=True, expires_at>=today) ─
+// مهم لأنه /api/recommendations/jobs/ endpoint مستقل عن /api/jobs/ وما في ضمانة إنه مطبق فيه نفس الفلترة.
+// الفحص دفاعي: أي حقل مو موجود بالبيانات منتجاوزه (ما منحظر الوظيفة بالغلط).
+function isRecommendedJobStillOpen(rawJob) {
+  if (rawJob.is_active === false) return false
+  if (rawJob.status && rawJob.status !== "open") return false
+  if (rawJob.expires_at) {
+    const today = new Date().toISOString().slice(0, 10)
+    if (String(rawJob.expires_at).slice(0, 10) < today) return false
+  }
+  return true
+}
+
+// ── توحيد شكل عنصر الـ recommendation القادم من /api/recommendations/jobs/ ─────
+// شكل الـ response الفعلي (تأكدنا منه عبر Network tab): array مباشر، كل عنصر فيه قيم خام
+// (city/employment_type/work_mode/status) بدون *_label، وبدون company_logo_url ولا specialization.
+// ملاحظة: بالقصد ما منستخدم/ما منعرض similarity_score أبداً حتى إنها موجودة بالبيانات.
+function normalizeRecommendedJob(item, isAr) {
+  const job = item?.job || item?.job_data || item
+  if (!job || job.id == null) return null
+  if (!isRecommendedJobStillOpen(job)) return null
+
+  const governorate = GOVERNORATES.find(g => g.value === job.city)
+
+  return {
+    id: job.id,
+    title: job.title,
+    company_name: job.company_name || job.company?.company_name || "",
+    company_logo_url: getCompanyLogo(job),
+    city_label: job.city_label || governorate?.label || job.city || "",
+    employment_type_label: job.employment_type_label || labelOf(JOB_TYPES, job.employment_type, isAr),
+    work_mode_label: job.work_mode_label || labelOf(WORK_TYPES, job.work_mode, isAr),
+    specialization: job.specialization || null,
+  }
 }
 
 // ── أفاتار الشركة: بيعرض اللوغو الحقيقي، وإذا مافي أو فشل تحميله بيرجع للأحرف الأولى ─────
@@ -106,6 +165,9 @@ export default function Home() {
   const [applications, setApplications] = useState([])
   const [applicationsLoading, setApplicationsLoading] = useState(true)
   const [applicationsError, setApplicationsError] = useState(false)
+  const [recommendedJobs, setRecommendedJobs] = useState([])
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true)
+  const [recommendationsError, setRecommendationsError] = useState(false)
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -182,6 +244,42 @@ export default function Home() {
     fetchSpecializations()
     fetchSeekersCount()
   }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setRecommendedJobs([])
+      setRecommendationsLoading(false)
+      return
+    }
+
+    const fetchRecommendations = async () => {
+      setRecommendationsLoading(true)
+      setRecommendationsError(false)
+      try {
+        // TODO(Farah): تأكدي من مفتاح التوكن الفعلي بالـ localStorage (هون مستخدم نفس مفتاح "token"
+        // المستخدم فوق بفحص isLoggedIn — إذا صفحات ثانية عندك بتخزن توكن الـ seeker بمفتاح مختلف، وحّديه هون)
+        const token = localStorage.getItem("token")
+        const res = await fetch(`${API_BASE}/recommendations/jobs/`, {
+          headers: { Authorization: `JobSeekerToken ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const rawList = Array.isArray(data) ? data : data.results || []
+          // بنعتمد على الترتيب يلي راجع من الباك اند كما هو (الأنسب أولاً)، بدون عرض أي رقم/نسبة
+          setRecommendedJobs(rawList.map(item => normalizeRecommendedJob(item, isAr)).filter(Boolean))
+        } else {
+          setRecommendationsError(true)
+        }
+      } catch (err) {
+        console.error("fetchRecommendations error:", err)
+        setRecommendationsError(true)
+      } finally {
+        setRecommendationsLoading(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [isLoggedIn, isAr])
 
   const handleSearch = () => {
     navigate(`/jobs?search=${encodeURIComponent(search)}&governorate=${encodeURIComponent(governorate)}`)
@@ -305,6 +403,93 @@ transition={{
   
 </div>
       </motion.div>
+
+      {/* ===== وظائف موصى بها (خاص بالباحثين عن عمل المسجلين دخولهم) ===== */}
+      {isLoggedIn && (
+        <motion.section
+          initial={{ opacity: 0, y: 70 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="px-4 md:px-10 py-10"
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-medium text-gray-900">{t("home.recommended_jobs")}</h2>
+            <span
+              onClick={() => navigate("/jobs")}
+              className="text-sm text-blue-600 cursor-pointer hover:underline"
+            >
+              {t("home.see_all")}
+            </span>
+          </div>
+
+          {recommendationsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100" />
+                    <div className="w-16 h-5 rounded-full bg-gray-100" />
+                  </div>
+                  <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : recommendationsError ? (
+            <p className="text-sm text-red-400 text-center py-10">{t("home.load_error")}</p>
+          ) : recommendedJobs.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-10">{t("home.no_recommendations")}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recommendedJobs.slice(0, 6).map(job => (
+                <div
+                  key={job.id}
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  className="relative bg-white border border-blue-100 rounded-xl p-4 cursor-pointer hover:-translate-y-2
+                    hover:shadow-2xl
+                    hover:scale-[1.02]
+                    transition-all
+                    duration-300"
+                >
+                 
+                  <div className="flex justify-between items-start mb-3">
+                    <CompanyAvatar
+                    name={job.company_name}
+                    logoUrl={getCompanyLogo(job)}
+                    imgSize="w-10 h-10"
+                    rounded="rounded-lg"
+                    fallbackClassName="bg-blue-50 text-blue-800 text-xs"
+                  />
+                    
+                    {job.employment_type_label && (
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-800">
+                        {job.employment_type_label}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 mb-1">{job.title}</p>
+                  <p className="text-xs text-gray-500 mb-3">
+                    {job.company_name} · {job.city_label}
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {job.work_mode_label && (
+                      <span className="text-xs px-2 py-1 bg-gray-50 text-gray-500 rounded-md">
+                        {job.work_mode_label}
+                      </span>
+                    )}
+                    {job.specialization && (
+                      <span className="text-xs px-2 py-1 bg-gray-50 text-gray-500 rounded-md">
+                        {isAr ? job.specialization.name_ar : job.specialization.name_en}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.section>
+      )}
 
       {/* ===== قسم حسب حالة المستخدم (يظهر فقط للمسجلين) ===== */}
       {isLoggedIn && (
@@ -482,10 +667,10 @@ duration-300 hover:shadow-sm transition flex flex-col items-center gap-2"
                 key={job.id}
                 onClick={() => navigate(`/jobs/${job.id}`)}
                 className="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:-translate-y-2
-hover:shadow-2xl
-hover:scale-[1.02]
-transition-all
-duration-300 transition"
+                hover:shadow-2xl
+                hover:scale-[1.02]
+                transition-all
+                duration-300 transition"
               >
                 <div className="flex justify-between items-start mb-3">
                   <CompanyAvatar

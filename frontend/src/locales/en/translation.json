@@ -176,7 +176,9 @@
   "latest_jobs": "Latest jobs",
   "see_all": "See all",
   "rights": "All rights reserved",
-  "load_error": "Failed to load data, please try again"
+  "load_error": "Failed to load data, please try again",
+  "recommended_jobs": "Recommended jobs for you",
+  "no_recommendations": "No recommendations available at the moment, try updating your profile or adding new skills"
 },
 "company": {
     "layout": {
