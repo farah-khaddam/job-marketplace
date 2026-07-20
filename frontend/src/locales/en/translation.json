@@ -196,6 +196,8 @@
       "title": "Dashboard",
       "welcome": "Welcome back, here's your overview",
       "post_job": "Post a Job",
+      "load_error": "Couldn't load data",
+      "loading": "Loading...",
       "stats": {
         "active_jobs": "Active Jobs",
         "total_apps": "Total Applications",
@@ -204,11 +206,13 @@
       },
       "recent_apps": {
         "title": "Recent Applications",
-        "view_all": "View all "
+        "view_all": "View all ",
+        "coming_soon": "Feature coming soon - waiting to be linked with the backend"
       },
       "active_jobs": {
         "title": "Active Jobs",
         "view_all": "View all ",
+        "empty": "No active jobs right now",
         "applicants": "applicants",
         "views": "views"
       },
@@ -280,7 +284,12 @@
       "active": "Active",
       "inactive": "Inactive",
       "preview_label": "Job Preview",
-      "sections": {
+      "edit_title": "Edit Job",
+      "edit_subtitle": "Update the details of your posted job",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "load_error": "Couldn't load job details",
+            "sections": {
         "basic": "Basic Information",
         "details": "Job Details",
         "publish": "Publish Settings"
@@ -435,6 +444,12 @@
   "back_to_jobs": "Back to all jobs",
   "not_found": "Job not found",
   "apply_btn": "Apply for this job",
+  "apply_submitting": "Submitting your application...",
+  "apply_applied": "Applied successfully",
+  "apply_already_applied": "Already applied",
+  "apply_already_applied_msg": "You have already applied to this job.",
+  "apply_success": "Your application was submitted successfully.",
+  "apply_error": "Something went wrong while applying. Please try again.",
   "apply_soon": "Apply feature coming soon",
   "description_title": "Job Description",
   "company_title": "About the Company",

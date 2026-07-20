@@ -55,8 +55,7 @@ function Counter({ from = 0, to }) {
   return <motion.span>{rounded}</motion.span>;
 }
 
-// TODO(Farah): تأكدي اسم الحقل الفعلي يلي راجع من /api/jobs/ للوغو الشركة (شوفي Network tab)
-// جربنا هون أكتر من احتمال شائع، وإذا ولا واحد منهن صح بس بدّليه بالاسم الصح
+
 function getCompanyLogo(job) {
   return (
     job.company_logo_url ||
@@ -104,6 +103,9 @@ export default function Home() {
   const [specializationsLoading, setSpecializationsLoading] = useState(true)
   const [specializationsError, setSpecializationsError] = useState(false)
   const [seekersCount, setSeekersCount] = useState(0)
+  const [applications, setApplications] = useState([])
+  const [applicationsLoading, setApplicationsLoading] = useState(true)
+  const [applicationsError, setApplicationsError] = useState(false)
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -111,7 +113,30 @@ export default function Home() {
         const res = await fetch(`${API_BASE}/jobs/`)
         if (res.ok) {
           const data = await res.json()
-          setJobs(Array.isArray(data) ? data : data.results || [])
+          const jobsData = Array.isArray(data) ? data : data.results || []
+          setJobs(jobsData)
+
+          if (isLoggedIn) {
+            const appliedJobIds = JSON.parse(localStorage.getItem("appliedJobs") || "[]")
+            const normalizedAppliedIds = Array.isArray(appliedJobIds)
+              ? appliedJobIds.map(id => String(id))
+              : []
+
+            const recentApplications = jobsData
+              .filter(job => normalizedAppliedIds.includes(String(job.id)))
+              .slice(0, 2)
+              .map(job => ({
+                id: job.id,
+                job_title: job.title,
+                company_name: job.company_name || job.company?.company_name || "",
+                status: "Applied",
+              }))
+
+            setApplications(recentApplications)
+            setApplicationsError(false)
+          } else {
+            setApplications([])
+          }
         } else {
           setJobsError(true)
         }
@@ -120,8 +145,10 @@ export default function Home() {
         setJobsError(true)
       } finally {
         setJobsLoading(false)
+        setApplicationsLoading(false)
       }
     }
+
     const fetchSpecializations = async () => {
       try {
         const res = await fetch(`${API_BASE}/jobs/specializations/`)
@@ -138,12 +165,12 @@ export default function Home() {
         setSpecializationsLoading(false)
       }
     }
-     const fetchSeekersCount = async () => {
+
+    const fetchSeekersCount = async () => {
       try {
         const res = await fetch(`${API_BASE}/jobseekers/count/`)
         if (res.ok) {
           const data = await res.json()
-          // نتوقع {"count": N} -- إذا رفيقتك رجعت شكل مختلف لازم نعدل هون
           setSeekersCount(typeof data.count === "number" ? data.count : null)
         }
       } catch (err) {
@@ -154,7 +181,7 @@ export default function Home() {
     fetchJobs()
     fetchSpecializations()
     fetchSeekersCount()
-  }, [])
+  }, [isLoggedIn])
 
   const handleSearch = () => {
     navigate(`/jobs?search=${encodeURIComponent(search)}&governorate=${encodeURIComponent(governorate)}`)
@@ -302,10 +329,10 @@ transition={{
               <div className="flex flex-col gap-3">
                 {jobs.slice(0, 2).map(job => (
                   <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:-translate-y-2
-hover:shadow-2xl
-hover:scale-[1.02]
-transition-all
-duration-300 transition">
+                  hover:shadow-2xl
+                  hover:scale-[1.02]
+                  transition-all
+                  duration-300 transition">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{job.title}</p>
                       <p className="text-xs text-gray-500">{job.company_name} · {job.city_label}</p>
@@ -323,19 +350,35 @@ duration-300 transition">
                 <span className="text-sm text-blue-600 cursor-pointer">{t("home.see_all")}</span>
               </div>
               <div className="flex flex-col gap-3">
-                {jobs.slice(0, 2).map(job => ( 
-                  <div key={job.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center hover:-translate-y-2
-hover:shadow-2xl
-hover:scale-[1.02]
-transition-all
-duration-300 transition">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{isAr ? job.title_ar : job.title_en}</p>
-                      <p className="text-xs text-gray-500">{isAr ? job.company_ar : job.company_en}</p>
+                {applicationsLoading ? (
+                  [1, 2].map(i => (
+                    <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse">
+                      <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
                     </div>
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700">{t("home.status_pending")}</span>
-                  </div>
-                ))}
+                  ))
+                ) : applicationsError ? (
+                  <p className="text-sm text-red-400 text-center py-4">{t("home.load_error")}</p>
+                ) : applications.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">{t("home.no_jobs")}</p>
+                ) : (
+                  applications.slice(0, 2).map(application => (
+                    <button
+                      key={application.id}
+                      type="button"
+                      onClick={() => navigate(`/jobs/${application.id}`)}
+                      className="w-full bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center hover:-translate-y-2 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{application.job_title}</p>
+                        <p className="text-xs text-gray-600">{application.company_name}</p>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">
+                        {application.status}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 

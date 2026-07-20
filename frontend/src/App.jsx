@@ -16,6 +16,9 @@ import JobDetails from "./pages/JobDetails"
 import CompanyProfile from "./pages/company/CompanyProfile"
 import CompanyJobs from "./pages/company/CompanyJobs"
 import Companies from "./pages/Companies"
+import About from "./pages/About"
+import AdminLayout from "./pages/admin/AdminLayout"
+import AdminSeekers from "./pages/admin/AdminSeekers"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import './App.css'
@@ -48,6 +51,10 @@ function App() {
       <Route path="/company/profile" element={<CompanyProfile />} />
       <Route path="/company/jobs" element={<CompanyJobs />} />
       <Route path="/companies" element={<Companies />} />
+      <Route path="/company/jobs/:id/edit" element={<PostJob />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/admin/*" element={<AdminLayout />} />
+      <Route path="/admin/seekers" element={<AdminSeekers />} />
     </Routes>
   )
 }
