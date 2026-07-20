@@ -14,6 +14,8 @@ class CompanyTokenAuthentication(BaseAuthentication):
     keyword = 'CompanyToken'
 
     def authenticate(self, request):
+
+        
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
 
         if not auth_header.startswith(f'{self.keyword} '):
@@ -31,6 +33,9 @@ class CompanyTokenAuthentication(BaseAuthentication):
         company = token.company
         if not company.is_active:
             raise AuthenticationFailed('Company account is inactive.')
+
+        if company.approval_status != 'approved':
+            raise AuthenticationFailed('Company account is not approved.')
 
         return (None, company)
 
