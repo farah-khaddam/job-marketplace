@@ -20,7 +20,7 @@ export default function Navbar() {
 
         {/* اللوغو — دائماً على اليمين */}
         <Link to="/" className="text-xl font-medium text-blue-900">
-          Job<span className="text-blue-600">Portal</span>
+          <span className="text-blue-600">{t("navbar.title")}</span>
         </Link>
         <button
           onClick={() => setMenuOpen(!menuOpen)}

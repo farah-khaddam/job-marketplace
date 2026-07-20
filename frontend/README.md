@@ -302,3 +302,34 @@ The seeker and company registration flows include a dedicated OTP verification s
 | Post Job | Job details, specialization selection, date selection, backend validation | Required-field validation and server-side error mapping |
 
 Overall, the frontend’s form system is designed to be user-friendly, localized, and easy to maintain by keeping validation logic reusable and separating presentation from submission behavior.
+
+## Internationalization (i18n)
+
+### Implementation
+
+The frontend uses i18next together with react-i18next for internationalization. The setup is centralized in [frontend/src/i18n.js](frontend/src/i18n.js), where the library is initialized, the translation resources are registered, Arabic is set as the default language, and English is configured as the fallback language.
+
+Translated content is consumed directly inside React components through the useTranslation hook. This approach is used across pages and shared UI components such as the navbar, auth screens, company dashboard layouts, admin interfaces, and the about page.
+
+### Translation Structure
+
+Translation resources are organized as JSON files under [frontend/src/locales](frontend/src/locales):
+
+- [frontend/src/locales/ar/translation.json](frontend/src/locales/ar/translation.json) for Arabic strings
+- [frontend/src/locales/en/translation.json](frontend/src/locales/en/translation.json) for English strings
+
+The translation files are grouped by feature or page area rather than by a single global file. In practice, the app uses keys such as navbar, company.layout, seeker_signup, about, and login, which keeps the content modular and easier to maintain.
+
+### Language Switching
+
+Users switch languages through dedicated UI controls such as the reusable language toggle component in [frontend/src/components/LangToggle.jsx](frontend/src/components/LangToggle.jsx), and through inline language buttons in the navbar and other page-level layouts. These controls call i18n.changeLanguage(...) to switch the active locale dynamically.
+
+The selected language is also reflected in the UI through the current i18n.language value, which components use to decide how to render labels, buttons, and direction-aware layout behavior.
+
+### RTL/LTR Support
+
+RTL and LTR behavior is handled in a component-aware way. The app updates the document root direction in [frontend/src/App.jsx](frontend/src/App.jsx) based on the active language, so the HTML document direction stays in sync with the selected locale.
+
+Several pages and layout components also set their own container direction explicitly using values such as rtl or ltr, and some layouts adjust alignment or sidebar positioning accordingly. For example, the company layout uses the active language to switch the sidebar position and navigation direction, while profile and authentication views often use the current language to control text alignment.
+
+In short, the frontend implements bilingual support with Arabic as the default language, English as the fallback, and direction-aware rendering for RTL and LTR interfaces.

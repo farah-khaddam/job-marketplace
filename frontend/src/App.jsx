@@ -19,6 +19,7 @@ import Companies from "./pages/Companies"
 import About from "./pages/About"
 import AdminLayout from "./pages/admin/AdminLayout"
 import AdminSeekers from "./pages/admin/AdminSeekers"
+import CompanyApplication from "./pages/company/CompanyApplications"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import './App.css'
@@ -55,6 +56,7 @@ function App() {
       <Route path="/about" element={<About />} />
       <Route path="/admin/*" element={<AdminLayout />} />
       <Route path="/admin/seekers" element={<AdminSeekers />} />
+      <Route path="/company/applications" element={<CompanyApplication />} />
     </Routes>
   )
 }

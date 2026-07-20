@@ -44,7 +44,7 @@
     "back_to_login": "العودة إلى تسجيل الدخول"
   },
     "hero": {
-    "brand": "JobPortal",
+    "brand": "خطوة",
     "tagline_1": "ابحث عن وظيفة",
     "tagline_2": "أحلامك بسهولة",
     "companies": "شركة مسجلة",
@@ -162,7 +162,8 @@
   "register": "إنشاء حساب",
   "dashboard": "لوحة التحكم",
   "logout": "تسجيل الخروج",
-  "start": "تسجيل الدخول"
+  "start": "تسجيل الدخول",
+  "title":"خطوة"
 },
 "home": {
   "hero_title_1":"جملة مؤقتة ",
@@ -184,7 +185,8 @@
   "rights": "جميع الحقوق محفوظة",
   "load_error": "تعذر تحميل البيانات، حاول مرة تانية",
   "recommended_jobs" :"وظائف موصى بها لك",
-  "no_recommendations": "لا توجد توصيات حالياً، حاول تحديث ملفك الشخصي أو إضافة مهارات جديدة"
+  "no_recommendations": "لا توجد توصيات حالياً، حاول تحديث ملفك الشخصي أو إضافة مهارات جديدة",
+  "footer_name": "خطوة"
 },
 "company": {
     "layout": {
@@ -363,7 +365,47 @@
     "linkedin_url": "لينكدإن",
     "select_company_type": "اختاري نوع الشركة"
   }
-}
+},
+ "applications": {
+      "title": "إدارة الطلبات",
+      "subtitle": "{{count}} طلب بانتظار المراجعة",
+      "load_error": "صار خطأ بالتحميل",
+      "sort_label": "ترتيب حسب",
+      "sort": {
+        "newest": "الأحدث",
+        "oldest": "الأقدم",
+        "match": "التطابق",
+        "match_disabled_tooltip": "نسبة التطابق غير متوفرة بعد من الباك إند"
+      },
+      "hide_rejected": "إخفاء الطلبات المرفوضة",
+      "loading": "عم يتم التحميل...",
+      "empty": "ما في طلبات لسا",
+      "group_summary": "{{total}} طلب · {{pending}} قيد الانتظار",
+      "view_all": "عرض الكل ({{count}})",
+      "show_less": "عرض أقل",
+      "accept": "قبول",
+      "reject": "رفض",
+      "contact_email": "تواصل عبر الإيميل",
+      "email_unavailable": "الإيميل غير متوفر بعد",
+      "email_subject": "بخصوص طلب التوظيف - {{job}}",
+      "status_updated": "تم تحديث حالة الطلب",
+      "match_unavailable_tooltip": "نسبة التطابق غير متوفرة حالياً",
+      "match_method_tooltip": "مبنية على تقاطع المهارات المطلوبة مع مهارات الباحث",
+      "match_value": "{{score}}% تطابق",
+      "mark_reviewed": "تحديد كمُراجَع",
+      "status": {
+        "applied": "قيد الانتظار",
+        "reviewed": "تمت المراجعة",
+        "accepted": "مقبول",
+        "rejected": "مرفوض"
+      },
+      "confirm_reject": {
+        "title": "تأكيد رفض الطلب",
+        "message": "رح ترفضي طلب \"{{name}}\". هل أنتِ متأكدة؟",
+        "cancel": "تراجع",
+        "confirm": "تأكيد الرفض"
+      }
+    }
   },
     "seeker": {
     "profile": {

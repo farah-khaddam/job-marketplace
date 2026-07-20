@@ -44,7 +44,7 @@
     "back_to_login": "Back to login"
   },
   "hero": {
-    "brand": "JobPortal",
+    "brand": "Khotwa",
     "tagline_1": "Find your dream",
     "tagline_2": "job easily",
     "companies": "Registered companies",
@@ -156,7 +156,8 @@
   "register": "Sign Up",
   "dashboard": "Dashboard",
   "logout": "Logout",
-  "start": "Login"
+  "start": "Login",
+  "title":"Khotwa"
 },
 "home": {
   "hero_title_1": "Find your",
@@ -178,7 +179,8 @@
   "rights": "All rights reserved",
   "load_error": "Failed to load data, please try again",
   "recommended_jobs": "Recommended jobs for you",
-  "no_recommendations": "No recommendations available at the moment, try updating your profile or adding new skills"
+  "no_recommendations": "No recommendations available at the moment, try updating your profile or adding new skills",
+  "footer_name":"Khotwa"
 },
 "company": {
     "layout": {
@@ -356,7 +358,47 @@
     "linkedin_url": "LinkedIn",
     "select_company_type": "Select company type"
   }
-}
+},
+ "applications": {
+      "title": "Manage Applications",
+      "subtitle": "{{count}} applications awaiting review",
+      "load_error": "Load error",
+      "sort_label": "Sort by",
+      "sort": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "match": "Match",
+        "match_disabled_tooltip": "Match score not available from backend yet"
+      },
+      "hide_rejected": "Hide rejected",
+      "loading": "Loading...",
+      "empty": "No applications yet",
+      "group_summary": "{{total}} applications · {{pending}} pending",
+      "view_all": "View all ({{count}})",
+      "show_less": "Show less",
+      "accept": "Accept",
+      "reject": "Reject",
+      "contact_email": "Contact via email",
+      "email_unavailable": "Email not available yet",
+      "email_subject": "About your job application - {{job}}",
+      "status_updated": "Status updated",
+      "match_unavailable_tooltip": "Match score not available yet",
+      "match_method_tooltip": "Based on overlap between required skills and applicant's skills",
+      "match_value": "{{score}}% match",
+      "mark_reviewed": "Mark as reviewed",
+      "status": {
+        "applied": "Pending",
+        "reviewed": "Reviewed",
+        "accepted": "Accepted",
+        "rejected": "Rejected"
+      },
+      "confirm_reject": {
+        "title": "Confirm rejection",
+        "message": "You're about to reject \"{{name}}\"'s application. Are you sure?",
+        "cancel": "Cancel",
+        "confirm": "Confirm reject"
+      }
+    }
   },
   "seeker": {
     "profile": {

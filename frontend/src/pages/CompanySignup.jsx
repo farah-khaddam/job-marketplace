@@ -275,7 +275,7 @@ const handleResendOtp = async () => {
   const LeftPanel = () => (
     <div className="hidden lg:flex w-[38%] flex-col justify-between p-14 relative z-10">
       <div className="flex items-center justify-between">
-        <span className="text-xl font-bold text-white">Job<span className="text-blue-300">Portal</span></span>
+        <span className="text-xl font-bold text-white">{t("navbar.title")}</span>
         <button onClick={() => i18n.changeLanguage(isAr ? "en" : "ar")}
           className="px-4 py-1.5 rounded-full text-xs font-medium border border-white/20 text-white/70 hover:border-white/50 hover:text-white transition">
           {isAr ? "EN" : "ع"}
@@ -305,7 +305,7 @@ const handleResendOtp = async () => {
           ))}
         </div>
       </div>
-      <p className="text-xs text-white/20">© 2025 JobPortal</p>
+      <p className="text-xs text-white/20">© 2025 {t("home.footer_name")}</p>
     </div>
   )
 

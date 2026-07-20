@@ -194,7 +194,7 @@ export default function Companies() {
 
       {/* ===== Footer ===== */}
       <footer className="bg-[#1e3a5f] px-10 py-8 text-center">
-        <p className="text-xs text-white/40">© {new Date().getFullYear()} JobPortal · {t("home.rights")}</p>
+        <p className="text-xs text-white/40">© {new Date().getFullYear()} {t("home.footer_name")} · {t("home.rights")}</p>
       </footer>
     </div>
   )
