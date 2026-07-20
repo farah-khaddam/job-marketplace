@@ -554,13 +554,10 @@ transition={{
                       onClick={() => navigate(`/jobs/${application.id}`)}
                       className="w-full bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center hover:-translate-y-2 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
                     >
-                      <div>
+                      <div className="w-full text-right">
                         <p className="text-sm font-medium text-gray-900">{application.job_title}</p>
-                        <p className="text-xs text-gray-600">{application.company_name}</p>
+                        <p className="text-xs text-gray-500">{application.company_name}</p>
                       </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">
-                        {application.status}
-                      </span>
                     </button>
                   ))
                 )}
