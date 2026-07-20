@@ -14,7 +14,8 @@ export default function JobDetails() {
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [showApplyMsg, setShowApplyMsg] = useState(false)
+  const [applyStatus, setApplyStatus] = useState("idle") // idle | submitting | applied | already_applied | error
+  const [applyError, setApplyError] = useState("")
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -38,9 +39,58 @@ export default function JobDetails() {
     fetchJob()
   }, [id])
 
-  const handleApply = () => {
-    setShowApplyMsg(true)
-    setTimeout(() => setShowApplyMsg(false), 3000)
+  const handleApply = async () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("jobSeekerToken")
+    if (!token) {
+      navigate("/login", { state: { from: `/jobs/${id}` } })
+      return
+    }
+
+    setApplyStatus("submitting")
+    setApplyError("")
+
+    try {
+      const res = await fetch(`/api/jobs/${id}/apply/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `JobSeekerToken ${token}`,
+        },
+        body: JSON.stringify({}),
+      })
+
+      if (res.ok) {
+        const appliedJobs = JSON.parse(localStorage.getItem("appliedJobs") || "[]")
+        const updatedAppliedJobs = Array.isArray(appliedJobs)
+          ? appliedJobs.filter(jobId => String(jobId) !== String(id))
+          : []
+
+        updatedAppliedJobs.push(String(id))
+        localStorage.setItem("appliedJobs", JSON.stringify(updatedAppliedJobs))
+        setApplyStatus("applied")
+        return
+      }
+
+      const data = await res.json().catch(() => ({}))
+      const message = data?.error || ""
+
+      if (res.status === 400 && message.toLowerCase().includes("already applied")) {
+        setApplyStatus("already_applied")
+        return
+      }
+
+      if (res.status === 401) {
+        navigate("/login", { state: { from: `/jobs/${id}` } })
+        return
+      }
+
+      setApplyStatus("error")
+      setApplyError(message || t("job_details.apply_error"))
+    } catch (err) {
+      console.error("apply error:", err)
+      setApplyStatus("error")
+      setApplyError(t("job_details.apply_error"))
+    }
   }
 
   return (
@@ -92,12 +142,25 @@ export default function JobDetails() {
                 <div className="flex flex-col items-start md:items-end gap-2">
                   <button
                     onClick={handleApply}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition"
+                    disabled={applyStatus === "submitting" || applyStatus === "applied" || applyStatus === "already_applied"}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition"
                   >
-                    {t("job_details.apply_btn")}
+                    {applyStatus === "submitting"
+                      ? t("job_details.apply_submitting")
+                      : applyStatus === "applied"
+                      ? t("job_details.apply_applied")
+                      : applyStatus === "already_applied"
+                      ? t("job_details.apply_already_applied")
+                      : t("job_details.apply_btn")}
                   </button>
-                  {showApplyMsg && (
-                    <span className="text-xs text-blue-300">{t("job_details.apply_soon")}</span>
+                  {applyStatus === "applied" && (
+                    <span className="text-xs text-green-300">{t("job_details.apply_success")}</span>
+                  )}
+                  {applyStatus === "already_applied" && (
+                    <span className="text-xs text-blue-300">{t("job_details.apply_already_applied_msg")}</span>
+                  )}
+                  {applyStatus === "error" && (
+                    <span className="text-xs text-red-300">{applyError}</span>
                   )}
                 </div>
               </div>
