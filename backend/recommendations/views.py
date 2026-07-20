@@ -7,6 +7,16 @@ from seeker_profiles.authentication import JobSeekerTokenAuthentication
 from seeker_profiles.permissions import IsJobSeekerAuthenticated
 from .services import EmbeddingService
 
+def get_company_logo(company, request):
+    profile = getattr(company, 'profile', None)
+    if profile is None:
+           return None
+    if profile.profile_picture:
+           return request.build_absolute_uri(profile.profile_picture.url)
+    if profile.external_picture_url:
+           return profile.external_picture_url
+    return None
+
 
 @api_view(['GET'])
 @authentication_classes([JobSeekerTokenAuthentication])
@@ -30,7 +40,7 @@ def recommended_jobs_for_seeker(request):
 
     jobs = (
         JobPosting.objects.filter(status='open', is_active=True)
-        .select_related('company', 'specialization')
+        .select_related('company','company__profile','specialization')
         .prefetch_related('job_applications')
     )
     jobs = list(jobs)
@@ -65,6 +75,7 @@ def recommended_jobs_for_seeker(request):
             'id': job.id,
             'title': job.title,
             'company_name': job.company.company_name,
+            'company_logo': get_company_logo(job.company, request),
             'similarity_score': round(float(similarity), 4),
             'city': job.city,
             'employment_type': job.employment_type,
