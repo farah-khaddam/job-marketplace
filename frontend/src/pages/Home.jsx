@@ -329,10 +329,10 @@ transition={{
               <div className="flex flex-col gap-3">
                 {jobs.slice(0, 2).map(job => (
                   <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:-translate-y-2
-hover:shadow-2xl
-hover:scale-[1.02]
-transition-all
-duration-300 transition">
+                  hover:shadow-2xl
+                  hover:scale-[1.02]
+                  transition-all
+                  duration-300 transition">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{job.title}</p>
                       <p className="text-xs text-gray-500">{job.company_name} · {job.city_label}</p>
@@ -363,19 +363,20 @@ duration-300 transition">
                   <p className="text-sm text-gray-400 text-center py-4">{t("home.no_jobs")}</p>
                 ) : (
                   applications.slice(0, 2).map(application => (
-                    <div key={application.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center hover:-translate-y-2
-hover:shadow-2xl
-hover:scale-[1.02]
-transition-all
-duration-300 transition">
+                    <button
+                      key={application.id}
+                      type="button"
+                      onClick={() => navigate(`/jobs/${application.id}`)}
+                      className="w-full bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center hover:-translate-y-2 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
+                    >
                       <div>
                         <p className="text-sm font-medium text-gray-900">{application.job_title}</p>
-                        <p className="text-xs text-gray-500">{application.company_name}</p>
+                        <p className="text-xs text-gray-600">{application.company_name}</p>
                       </div>
-                      <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700">
+                      <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">
                         {application.status}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
