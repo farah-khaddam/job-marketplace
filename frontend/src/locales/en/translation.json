@@ -207,7 +207,7 @@
       "recent_apps": {
         "title": "Recent Applications",
         "view_all": "View all ",
-        "coming_soon": "Feature coming soon - waiting to be linked with the backend"
+        "empty": "No applications yet"
       },
       "active_jobs": {
         "title": "Active Jobs",

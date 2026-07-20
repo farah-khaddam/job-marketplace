@@ -61,37 +61,52 @@ export default function CompanyDashboard() {
   const isAr = i18n.language === "ar"
 
   const [jobs, setJobs]       = useState([])
+  const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
   // ── جلب وظائف الشركة من الباك إند ─────────────────────
   useEffect(() => {
     const fetchJobs = async () => {
-      console.log("🔵 fetchJobs: starting...")
       try {
         const token = localStorage.getItem("token")
         const res = await fetch(`${API_BASE}/jobs/company/jobs/`, {
           headers: { "Authorization": `CompanyToken ${token}` },
         })
-        console.log("🔵 fetchJobs: status =", res.status)
         if (res.ok) {
           const data = await res.json()
-          console.log("🟢 fetchJobs: data =", data)
-          // TODO(Farah): تأكدي هل الـ response array مباشر أو {results: [...]}
           setJobs(Array.isArray(data) ? data : data.results || [])
         } else {
           const text = await res.text()
-          console.error("🔴 fetchJobs: error response =", text)
           setError(text)
         }
       } catch (err) {
-        console.error("🔴 fetchJobs: network error =", err)
         setError(err.message)
       } finally {
         setLoading(false)
       }
     }
+
+    const fetchApplications = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        const res = await fetch(`${API_BASE}/jobs/company/jobs/applications/`, {
+          headers: { Authorization: `CompanyToken ${token}` },
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          setApplications(Array.isArray(data) ? data : data.results || [])
+        } else {
+          setApplications([])
+        }
+      } catch (err) {
+        setApplications([])
+      }
+    }
+
     fetchJobs()
+    fetchApplications()
   }, [])
 
   // ===== وظائف نشطة فقط (بعيد المنتهية والمغلقة) =====
@@ -156,7 +171,6 @@ export default function CompanyDashboard() {
         {/* ===== Two Columns ===== */}
         <div className="grid grid-cols-5 gap-6">
 
-          {/* Recent Applications — لا يوجد endpoint حالياً */}
           <div className="col-span-3 bg-white border border-gray-100 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
               <h2 className="text-sm font-semibold text-gray-800">
@@ -166,13 +180,33 @@ export default function CompanyDashboard() {
                 {t("company.dashboard.recent_apps.view_all")}
               </button>
             </div>
-            {/* TODO(Farah): بمجرد ما تجهز رفيقتك endpoint الطلبات، بنجيب هون آخر 4-5 طلبات */}
-            <div className="flex flex-col items-center justify-center py-14 text-center px-6">
-              <div className="text-3xl mb-3">🚧</div>
-              <p className="text-sm text-gray-500">
-                {t("company.dashboard.recent_apps.coming_soon")}
-              </p>
-            </div>
+            {applications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 text-center px-6">
+                <div className="text-3xl mb-3">📩</div>
+                <p className="text-sm text-gray-500">
+                  {t("company.dashboard.recent_apps.empty")}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {applications.slice(0, 5).map(app => (
+                  <div key={app.id} className="px-6 py-4 hover:bg-gray-50/50 transition">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{app.job_title || "-"}</p>
+                        <p className="text-xs text-gray-500 mt-1 truncate">{app.seeker_name || "-"}</p>
+                      </div>
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 shrink-0">
+                        {app.status || "-"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {app.company_name || "-"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Active Jobs — مربوطة بـ /api/jobs/company/jobs/ */}
