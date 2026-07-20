@@ -188,5 +188,12 @@
       "router": true,
       "basename": "seeker-education"
     }
+    ,
+    {
+      "path": "/api/recommendations/jobs/",
+      "app": "recommendations",
+      "name": "recommended-jobs",
+      "methods": ["GET"]
+    }
   ]
 }

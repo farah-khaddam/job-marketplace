@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import { API_BASE } from "../../config"
 import CompanyLayout from "../../components/company/CompanyLayout"
 
 // ===== Constants =====
@@ -96,7 +97,9 @@ const selectCls =
 export default function PostJob() {
   const { t, i18n } = useTranslation()
   const navigate     = useNavigate()
+  const { id }       = useParams()
   const isAr         = i18n.language === "ar"
+  const isEditMode   = Boolean(id)
 
   const [form,   setForm]   = useState(INITIAL_FORM)
   const [errors, setErrors] = useState({})
@@ -104,12 +107,16 @@ export default function PostJob() {
   const [specializations, setSpecializations] = useState([])
   const [specsLoading, setSpecsLoading] = useState(true)
 
+  // وضع التعديل فقط
+  const [jobLoading, setJobLoading] = useState(isEditMode)
+  const [jobLoadError, setJobLoadError] = useState(false)
+
   // ── جلب التخصصات من الباك إند ─────────────────────────
   useEffect(() => {
     const fetchSpecs = async () => {
       console.log("🔵 fetchSpecs: starting...")
       try {
-        const res = await fetch("/api/jobs/specializations/")
+        const res = await fetch(`${API_BASE}/jobs/specializations/`)
         console.log("🔵 fetchSpecs: status =", res.status)
         if (res.ok) {
           const data = await res.json()
@@ -127,6 +134,45 @@ export default function PostJob() {
     }
     fetchSpecs()
   }, [])
+
+  // ── وضع التعديل: نجيب بيانات الوظيفة الموجودة ونعبّي الفورم فيها ─────
+  useEffect(() => {
+    if (!isEditMode) return
+    const fetchJob = async () => {
+      setJobLoading(true)
+      setJobLoadError(false)
+      try {
+        const token = localStorage.getItem("token")
+        const res = await fetch(`${API_BASE}/jobs/company/jobs/${id}/`, {
+          headers: { Authorization: `CompanyToken ${token}` },
+        })
+        if (res.ok) {
+          const job = await res.json()
+          // TODO(Farah): تأكدي إذا specialization راجعة كـ object {id, name_ar,...} أو رقم مباشر (specialization_id)
+          const specId = job.specialization?.id ?? job.specialization_id ?? job.specialization ?? ""
+          setForm({
+            title:           job.title || "",
+            description:     job.description || "",
+            specialization:  specId ? String(specId) : "",
+            city:            job.city || "",
+            employment_type: job.employment_type || "",
+            work_mode:       job.work_mode || "",
+            status:          job.status || "open",
+            is_active:       job.is_active ?? true,
+            expires_at:      job.expires_at ? job.expires_at.slice(0, 10) : "",
+          })
+        } else {
+          setJobLoadError(true)
+        }
+      } catch (err) {
+        console.error("🔴 fetchJob (edit): network error =", err)
+        setJobLoadError(true)
+      } finally {
+        setJobLoading(false)
+      }
+    }
+    fetchJob()
+  }, [id, isEditMode])
 
   // ── helpers ──────────────────────────────────────────
   const set = (key, value) => {
@@ -165,8 +211,12 @@ export default function PostJob() {
         is_active:          form.is_active,
         expires_at:         form.expires_at,
       }
-      const res = await fetch("/api/jobs/company/jobs/", {
-        method:  "POST",
+
+      const url    = isEditMode ? `${API_BASE}/jobs/company/jobs/${id}/` : `${API_BASE}/jobs/company/jobs/`
+      const method = isEditMode ? "PATCH" : "POST"
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type":   "application/json",
           "Authorization": `CompanyToken ${token}`,
@@ -175,7 +225,7 @@ export default function PostJob() {
       })
 
       if (res.ok) {
-        navigate("/company/dashboard")
+        navigate(isEditMode ? "/company/jobs" : "/company/dashboard")
         return
       }
 
@@ -226,14 +276,14 @@ export default function PostJob() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
-              {t("company.post_job.title")}
+              {isEditMode ? t("company.post_job.edit_title") : t("company.post_job.title")}
             </h1>
             <p className="text-sm text-gray-400 mt-0.5">
-              {t("company.post_job.subtitle")}
+              {isEditMode ? t("company.post_job.edit_subtitle") : t("company.post_job.subtitle")}
             </p>
           </div>
           <button
-            onClick={() => navigate("/company/dashboard")}
+            onClick={() => navigate(isEditMode ? "/company/jobs" : "/company/dashboard")}
             className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 text-gray-600
                        text-sm font-medium rounded-xl hover:bg-gray-50 transition"
           >
@@ -247,6 +297,18 @@ export default function PostJob() {
           </button>
         </div>
 
+        {jobLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-32 bg-white border border-gray-100 rounded-2xl" />
+            <div className="h-48 bg-white border border-gray-100 rounded-2xl" />
+            <div className="h-24 bg-white border border-gray-100 rounded-2xl" />
+          </div>
+        ) : jobLoadError ? (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+            {t("company.post_job.load_error")}
+          </div>
+        ) : (
+        <>
         {/* ===== Basic Info ===== */}
         <Section title={t("company.post_job.sections.basic")}>
           <Field label={t("company.post_job.fields.title")} required error={errors.title}>
@@ -502,7 +564,7 @@ export default function PostJob() {
         <div className="flex items-center justify-end gap-3 pb-4">
           <button
             type="button"
-            onClick={() => navigate("/company/dashboard")}
+            onClick={() => navigate(isEditMode ? "/company/jobs" : "/company/dashboard")}
             className="px-5 py-2.5 text-sm font-medium text-gray-600 border border-gray-200
                        rounded-xl hover:bg-gray-50 transition"
           >
@@ -521,9 +583,13 @@ export default function PostJob() {
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
             )}
-            {loading ? t("company.post_job.submitting") : t("company.post_job.submit")}
+            {loading
+              ? (isEditMode ? t("company.post_job.saving") : t("company.post_job.submitting"))
+              : (isEditMode ? t("company.post_job.save") : t("company.post_job.submit"))}
           </button>
         </div>
+        </>
+        )}
 
       </div>
     </CompanyLayout>
