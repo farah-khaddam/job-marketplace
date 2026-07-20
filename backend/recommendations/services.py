@@ -12,21 +12,25 @@ class EmbeddingService:
     def _tokenize(self, text: str) -> List[str]:
         return [token.lower() for token in text.replace('\n', ' ').split() if token.strip()]
 
-    def encode_text(self, text: str) -> List[float]:
-        tokens = self._tokenize(text or '')
-        if not tokens:
-            return [0.0]
+    def encode_batch(self, texts: List[str]) -> List[List[float]]:
+   
+        tokenized = [self._tokenize(t or '') for t in texts]
 
-        vocab = sorted(set(tokens))
-        vector = []
-        for token in vocab:
-            vector.append(tokens.count(token))
+        vocab = sorted({tok for tokens in tokenized for tok in tokens})
+        if not vocab:
+            return [[0.0] for _ in texts]
 
-        norm = math.sqrt(sum(v * v for v in vector))
-        if norm == 0:
-            return [0.0] * len(vector)
-        return [value / norm for value in vector]
-
+        vectors = []
+        for tokens in tokenized:
+            raw = [tokens.count(word) for word in vocab]
+            norm = math.sqrt(sum(v * v for v in raw))
+            if norm == 0:
+                vectors.append([0.0] * len(vocab))
+            else:
+                vectors.append([v / norm for v in raw])
+        return vectors
+    
+    
     def cosine_similarity(self, left: List[float], right: List[float]) -> float:
         if not left or not right:
             return 0.0

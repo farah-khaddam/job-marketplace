@@ -27,15 +27,19 @@ def recommended_jobs_for_seeker(request):
         ' '.join(f"{experience.title} {experience.company}" for experience in seeker_profile.experiences.all()),
         ' '.join(f"{education.degree} {education.institution}" for education in seeker_profile.education_entries.all()),
     ]))
-    seeker_vector = embedding_service.encode_text(seeker_text)
 
     jobs = (
         JobPosting.objects.filter(status='open', is_active=True)
         .select_related('company', 'specialization')
         .prefetch_related('job_applications')
     )
+    jobs = list(jobs)
 
-    ranked = []
+    if not jobs:
+        return Response([], status=status.HTTP_200_OK)
+
+   
+    job_texts = []
     for job in jobs:
         job_text = ' '.join(filter(None, [
             job.title,
@@ -46,7 +50,16 @@ def recommended_jobs_for_seeker(request):
             job.employment_type,
             job.work_mode,
         ]))
-        job_vector = embedding_service.encode_text(job_text)
+        job_texts.append(job_text)
+
+   
+    all_texts = [seeker_text] + job_texts
+    all_vectors = embedding_service.encode_batch(all_texts)
+    seeker_vector, job_vectors = all_vectors[0], all_vectors[1:]
+
+  
+    ranked = []
+    for job, job_vector in zip(jobs, job_vectors):
         similarity = embedding_service.cosine_similarity(seeker_vector, job_vector)
         ranked.append({
             'id': job.id,
