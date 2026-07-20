@@ -301,7 +301,7 @@ export default function About() {
 
       {/* ===== Footer ===== */}
       <footer className="bg-[#1e3a5f] px-10 py-8 text-center">
-        <p className="text-xs text-white/40">© {new Date().getFullYear()} JobPortal · {t("about.rights")}</p>
+        <p className="text-xs text-white/40">© {new Date().getFullYear()} {t("about.brand")} · {t("about.rights")}</p>
       </footer>
     </div>
   )
