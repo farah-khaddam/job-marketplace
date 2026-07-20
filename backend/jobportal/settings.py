@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django_extensions',
     "seeker_profiles",
     "company_profile",
+    "admin_dashboard",
 ]
 
 SITE_ID = 1
