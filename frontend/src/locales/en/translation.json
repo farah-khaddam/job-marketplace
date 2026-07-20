@@ -465,5 +465,72 @@
   "load_error": "Couldn't load companies",
   "empty": "No companies registered yet",
   "no_results": "No company found with that name"
-}
+},
+ "about": {
+    "badge": "About JobPortal",
+    "hero_title_1": "Building the bridge between",
+    "hero_title_2": "talent and opportunity",
+    "hero_title_3": "across Syria",
+    "hero_sub": "JobPortal is Syria's dedicated platform for connecting ambitious job seekers with the companies shaping the country's future.",
+    "stat_jobs": "Active Jobs",
+    "stat_companies": "Partner Companies",
+    "stat_seekers": "Registered Job Seekers",
+    "load_error": "Failed to load statistics, please try again",
+    "story": {
+      "eyebrow": "Our Story",
+      "title": "Built for the Syrian job market, by people who understand it",
+      "p1": "JobPortal was founded to address a simple but pressing problem: talented people across Syria were struggling to find companies that valued their skills, and companies were struggling to find the right people in a fragmented, informal hiring landscape.",
+      "p2": "Today, we bring job seekers and employers together in one trusted space, free from guesswork, gatekeeping, or wasted time, and built to grow alongside Syria's evolving economy.",
+      "card1": "Graduates and early-career professionals starting their journey",
+      "card2": "Opportunities across every Syrian governorate",
+      "card3": "Verified companies, from startups to established employers",
+      "card4": "Faster, more transparent hiring for everyone"
+    },
+    "mission": {
+      "title": "Our Mission",
+      "desc": "To make finding and offering meaningful work in Syria simple, transparent, and accessible for every job seeker and every employer, regardless of size or location."
+    },
+    "vision": {
+      "title": "Our Vision",
+      "desc": "A Syria where opportunity is visible and reachable for everyone, and where companies can build strong teams without friction, wherever they are."
+    },
+    "values": {
+      "title": "What We Stand For",
+      "transparency": {
+        "title": "Transparency",
+        "desc": "Clear job details, honest company profiles, and an application process seekers can trust from start to finish."
+      },
+      "equal_opportunity": {
+        "title": "Equal Opportunity",
+        "desc": "Every job seeker gets the same fair shot, regardless of background, governorate, or connections."
+      },
+      "simplicity": {
+        "title": "Simplicity",
+        "desc": "No unnecessary steps, just a straightforward way to search, apply, and hire."
+      },
+      "growth": {
+        "title": "Growth",
+        "desc": "We build features around what actually helps job seekers and companies grow, one release at a time."
+      }
+    },
+    "how": {
+      "title": "How JobPortal Works",
+      "subtitle": "Four simple steps to your next opportunity",
+      "step1_title": "Create your profile",
+      "step1_desc": "Sign up and build a profile that showcases your skills, experience, and resume.",
+      "step2_title": "Explore open roles",
+      "step2_desc": "Search and filter jobs by governorate, specialization, and work type to find the right fit.",
+      "step3_title": "Apply in one click",
+      "step3_desc": "Submit your application directly through the platform, no emails, no hassle.",
+      "step4_title": "Get hired",
+      "step4_desc": "Track your applications and connect directly with companies ready to hire you."
+    },
+    "cta": {
+      "title": "Ready to take the next step?",
+      "sub": "Join thousands of job seekers and companies already using JobPortal.",
+      "seeker_btn": "Sign up as a Job Seeker",
+      "company_btn": "Register your Company"
+    },
+    "rights": "All rights reserved"
+  }
 }
