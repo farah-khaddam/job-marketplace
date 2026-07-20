@@ -44,7 +44,7 @@
     "back_to_login": "Back to login"
   },
   "hero": {
-    "brand": "JobPortal",
+    "brand": "Khotwa",
     "tagline_1": "Find your dream",
     "tagline_2": "job easily",
     "companies": "Registered companies",
@@ -156,7 +156,8 @@
   "register": "Sign Up",
   "dashboard": "Dashboard",
   "logout": "Logout",
-  "start": "Login"
+  "start": "Login",
+  "title":"Khotwa"
 },
 "home": {
   "hero_title_1": "Find your",
@@ -178,7 +179,8 @@
   "rights": "All rights reserved",
   "load_error": "Failed to load data, please try again",
   "recommended_jobs": "Recommended jobs for you",
-  "no_recommendations": "No recommendations available at the moment, try updating your profile or adding new skills"
+  "no_recommendations": "No recommendations available at the moment, try updating your profile or adding new skills",
+  "footer_name":"Khotwa"
 },
 "company": {
     "layout": {
@@ -356,7 +358,47 @@
     "linkedin_url": "LinkedIn",
     "select_company_type": "Select company type"
   }
-}
+},
+ "applications": {
+      "title": "Manage Applications",
+      "subtitle": "{{count}} applications awaiting review",
+      "load_error": "Load error",
+      "sort_label": "Sort by",
+      "sort": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "match": "Match",
+        "match_disabled_tooltip": "Match score not available from backend yet"
+      },
+      "hide_rejected": "Hide rejected",
+      "loading": "Loading...",
+      "empty": "No applications yet",
+      "group_summary": "{{total}} applications · {{pending}} pending",
+      "view_all": "View all ({{count}})",
+      "show_less": "Show less",
+      "accept": "Accept",
+      "reject": "Reject",
+      "contact_email": "Contact via email",
+      "email_unavailable": "Email not available yet",
+      "email_subject": "About your job application - {{job}}",
+      "status_updated": "Status updated",
+      "match_unavailable_tooltip": "Match score not available yet",
+      "match_method_tooltip": "Based on overlap between required skills and applicant's skills",
+      "match_value": "{{score}}% match",
+      "mark_reviewed": "Mark as reviewed",
+      "status": {
+        "applied": "Pending",
+        "reviewed": "Reviewed",
+        "accepted": "Accepted",
+        "rejected": "Rejected"
+      },
+      "confirm_reject": {
+        "title": "Confirm rejection",
+        "message": "You're about to reject \"{{name}}\"'s application. Are you sure?",
+        "cancel": "Cancel",
+        "confirm": "Confirm reject"
+      }
+    }
   },
   "seeker": {
     "profile": {
@@ -468,71 +510,73 @@
   "empty": "No companies registered yet",
   "no_results": "No company found with that name"
 },
- "about": {
-    "badge": "About JobPortal",
-    "hero_title_1": "Building the bridge between",
-    "hero_title_2": "talent and opportunity",
-    "hero_title_3": "across Syria",
-    "hero_sub": "JobPortal is Syria's dedicated platform for connecting ambitious job seekers with the companies shaping the country's future.",
-    "stat_jobs": "Active Jobs",
-    "stat_companies": "Partner Companies",
-    "stat_seekers": "Registered Job Seekers",
-    "load_error": "Failed to load statistics, please try again",
+  "about": {
+    "brand": "Khotwa",
+    "badge": "About Us",
+    "hero_title_1": "With you at every",
+    "hero_title_2": "step",
+    "hero_title_3": "toward your career",
+    "hero_sub": "Khotwa is a dedicated Syrian platform that closes the gap between job seekers and companies, turning the often complicated hiring journey into clear, simple, and fair steps for everyone.",
+    "stat_jobs": "Active jobs",
+    "stat_companies": "Registered companies",
+    "stat_seekers": "Job seekers",
+    "load_error": "Couldn't load statistics",
     "story": {
       "eyebrow": "Our Story",
-      "title": "Built for the Syrian job market, by people who understand it",
-      "p1": "JobPortal was founded to address a simple but pressing problem: talented people across Syria were struggling to find companies that valued their skills, and companies were struggling to find the right people in a fragmented, informal hiring landscape.",
-      "p2": "Today, we bring job seekers and employers together in one trusted space, free from guesswork, gatekeeping, or wasted time, and built to grow alongside Syria's evolving economy.",
-      "card1": "Graduates and early-career professionals starting their journey",
-      "card2": "Opportunities across every Syrian governorate",
-      "card3": "Verified companies, from startups to established employers",
-      "card4": "Faster, more transparent hiring for everyone"
+      "title": "A simple beginning... and a step toward a real solution",
+      "p1": "Khotwa began with a simple observation: job seekers were spending significant time and effort navigating scattered, unreliable websites, while companies struggled to reach the talent they actually needed. Khotwa was built to solve that — one clear, organized platform that brings both sides together.",
+      "p2": "We're continuously expanding the platform to cover every Syrian governorate, and improving it step by step based on the real needs of our users — both job seekers and companies.",
+      "card1": "Opportunities for fresh graduates and experienced professionals alike",
+      "card2": "Full coverage across every Syrian governorate",
+      "card3": "Verified companies from a wide range of sectors",
+      "card4": "A faster, clearer application and hiring journey"
     },
     "mission": {
       "title": "Our Mission",
-      "desc": "To make finding and offering meaningful work in Syria simple, transparent, and accessible for every job seeker and every employer, regardless of size or location."
+      "desc": "To bring job opportunities closer to every job seeker in Syria through a trustworthy, easy-to-use platform that saves time and effort for job seekers and companies alike."
     },
     "vision": {
       "title": "Our Vision",
-      "desc": "A Syria where opportunity is visible and reachable for everyone, and where companies can build strong teams without friction, wherever they are."
+      "desc": "For Khotwa to become the leading destination for Syria's job market, and an active contributor to rebuilding the national economy by connecting talent with the opportunities it deserves."
     },
     "values": {
-      "title": "What We Stand For",
+      "title": "The values that guide our work",
       "transparency": {
         "title": "Transparency",
-        "desc": "Clear job details, honest company profiles, and an application process seekers can trust from start to finish."
+        "desc": "We present every job opportunity with accurate, clear information, without exaggeration or ambiguity, because trust is the foundation of our relationship with our users."
       },
       "equal_opportunity": {
         "title": "Equal Opportunity",
-        "desc": "Every job seeker gets the same fair shot, regardless of background, governorate, or connections."
+        "desc": "We open the job market to everyone, regardless of governorate or background, and connect real talent with the companies best suited to them."
       },
       "simplicity": {
         "title": "Simplicity",
-        "desc": "No unnecessary steps, just a straightforward way to search, apply, and hire."
+        "desc": "From sign-up to application, every step is designed to be fast, clear, and free of unnecessary technical friction."
       },
       "growth": {
-        "title": "Growth",
-        "desc": "We build features around what actually helps job seekers and companies grow, one release at a time."
+        "title": "Continuous Improvement",
+        "desc": "We listen to our users and keep evolving the platform based on the real needs of the Syrian job market."
       }
     },
     "how": {
-      "title": "How JobPortal Works",
-      "subtitle": "Four simple steps to your next opportunity",
-      "step1_title": "Create your profile",
-      "step1_desc": "Sign up and build a profile that showcases your skills, experience, and resume.",
-      "step2_title": "Explore open roles",
-      "step2_desc": "Search and filter jobs by governorate, specialization, and work type to find the right fit.",
-      "step3_title": "Apply in one click",
-      "step3_desc": "Submit your application directly through the platform, no emails, no hassle.",
-      "step4_title": "Get hired",
-      "step4_desc": "Track your applications and connect directly with companies ready to hire you."
+      "title": "How the platform works",
+      "subtitle": "Four simple steps between you and your next opportunity",
+      "step1_title": "Create your account",
+      "step1_desc": "Sign up as a job seeker or a company in just a few minutes.",
+      "step2_title": "Explore opportunities",
+      "step2_desc": "Browse available jobs by specialization, governorate, or employment type.",
+      "step3_title": "Apply in one step",
+      "step3_desc": "Send your application directly from your profile, with no hassle.",
+      "step4_title": "Start your career journey",
+      "step4_desc": "Connect with companies and track your application status in real time."
     },
     "cta": {
-      "title": "Ready to take the next step?",
-      "sub": "Join thousands of job seekers and companies already using JobPortal.",
-      "seeker_btn": "Sign up as a Job Seeker",
-      "company_btn": "Register your Company"
+      "title": "Ready to take your next step?",
+      "sub": "Whether you're looking for your next opportunity, or the talent your company needs, start with us today",
+      "seeker_btn": "Sign up as a job seeker",
+      "company_btn": "Register your company"
     },
     "rights": "All rights reserved"
   }
 }
+
