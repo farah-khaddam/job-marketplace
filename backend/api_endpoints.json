@@ -128,6 +128,21 @@
       "name": "company_job_detail"
     },
     {
+      "path": "/api/jobs/company/jobs/applications/",
+      "app": "jobs",
+      "name": "company_applications_list"
+    },
+    {
+      "path": "/api/jobs/company/jobs/applications/<int:pk>/",
+      "app": "jobs",
+      "name": "company_application_detail"
+    },
+    {
+      "path": "/api/jobs/<int:job_id>/apply/",
+      "app": "jobs",
+      "name": "job-apply"
+    },
+    {
       "path": "/api/company/profile/",
       "app": "company_profile",
       "name": "company-profile"

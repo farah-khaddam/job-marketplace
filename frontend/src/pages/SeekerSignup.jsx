@@ -98,6 +98,7 @@ if (!res.ok) {
   if (generalError) setError(generalError)
   return
 }
+      setStep(STEPS.OTP)
     } catch { setError(t("seeker_signup.error_network")) }
     finally { setLoading(false) }
   }
@@ -331,7 +332,8 @@ if (!res.ok) {
 
           </form>
 
-          <button onClick={() => navigate("/signup")} className="w-full mt-4 text-xs text-gray-400 hover:text-gray-600 transition text-center">
+          <button onClick={() => { setStep(STEPS.REGISTER); setError(""); setOtpValues(Array(6).fill("")); setOtp("") }}
+                className="text-gray-500 hover:underline">
             ← {t("seeker_signup.back")}
           </button>
         </div>
