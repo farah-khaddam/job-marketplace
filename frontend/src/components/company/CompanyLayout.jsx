@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 
@@ -47,14 +48,49 @@ export default function CompanyLayout({ children }) {
   const navigate = useNavigate()
   const isAr = i18n.language === "ar"
   const dir = isAr ? "rtl" : "ltr"
+  const [companyName, setCompanyName] = useState(() => localStorage.getItem("companyName") || t("company.layout.my_company"))
+  const [companyLogoUrl, setCompanyLogoUrl] = useState(null)
+  const [logoError, setLogoError] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    let isCancelled = false
+
+    const fetchCompanyProfile = async () => {
+      try {
+        const res = await fetch("/api/company/profile/", {
+          headers: { Authorization: `CompanyToken ${token}` },
+        })
+
+        if (!res.ok) return
+
+        const data = await res.json()
+        if (isCancelled) return
+
+        const nextName = data.company_name || localStorage.getItem("companyName") || t("company.layout.my_company")
+        setCompanyName(nextName)
+        setCompanyLogoUrl(data.profile_picture_url || data.logo_url || data.external_picture_url || data.external_logo_url || null)
+        setLogoError(false)
+      } catch (err) {
+        console.error("Failed to load company profile image", err)
+      }
+    }
+
+    fetchCompanyProfile()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [t])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
     navigate("/")
   }
 
-  const companyName = localStorage.getItem("companyName") || t("company.layout.my_company")
-  const companyInitials = companyName.slice(0, 2)
+  const companyInitials = (companyName || t("company.layout.my_company")).slice(0, 2)
 
   return (
     <div className="min-h-screen bg-gray-50 flex" dir={dir}>
@@ -74,12 +110,21 @@ export default function CompanyLayout({ children }) {
 
         {/* Company Info */}
         <div className="px-5 py-4 border-b border-white/10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-400/20 text-blue-200 text-xs font-semibold flex items-center justify-center flex-shrink-0">
-            {companyInitials}
+          <div className="w-9 h-9 rounded-xl bg-blue-400/20 text-blue-200 text-xs font-semibold flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {companyLogoUrl && !logoError ? (
+              <img
+                src={companyLogoUrl}
+                alt={companyName}
+                className="w-full h-full object-cover"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <span>{companyInitials}</span>
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-white truncate">{companyName}</p>
-            <p className="text-xs text-white/40">{t("company.layout.company_account")}</p>
+            {/* <p className="text-xs text-white/40">{t("company.layout.company_account")}</p> */}
           </div>
         </div>
 
@@ -131,7 +176,7 @@ export default function CompanyLayout({ children }) {
       {/* ===== Main Content ===== */}
       <main
         className="flex-1 min-h-screen"
-        style={{ marginRight: isAr ? "240px" : 0, marginLeft: isAr ? 0 : "240px" }}
+        style={{ marginRight: isAr ? "260px" : 0, marginLeft: isAr ? 0 : "240px" }}
       >
         {children}
       </main>
