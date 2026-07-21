@@ -7,6 +7,10 @@ from seeker_profiles.models import SeekerProfile
 from jobs.models import JobPosting, Specialization
 
 
+class AdminLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
 # ---------------------------------------------------------------------------
 # 1) Job Seekers
 # ---------------------------------------------------------------------------

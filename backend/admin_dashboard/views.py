@@ -12,10 +12,11 @@ from seeker_profiles.models import SeekerProfile
 from jobs.models import JobPosting, Specialization  
 
 from .authentication import AdminTokenAuthentication
-from .models import JobDeletionLog
+from .models import AdminUser, AdminAuthToken, JobDeletionLog
 from .pagination import AdminPagination
 from .permissions import IsAdminUser
 from .serializers import (
+    AdminLoginSerializer,
     AdminSeekerSerializer,
     AdminSeekerUpdateSerializer,
     AdminCompanySerializer,
@@ -28,10 +29,40 @@ from .serializers import (
 )
 
 
+
 class AdminBaseView:
     authentication_classes = [AdminTokenAuthentication]
     permission_classes = [IsAdminUser]
 
+
+class AdminLoginView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        serializer = AdminLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].lower().strip()
+        password = serializer.validated_data["password"]
+
+        admin = AdminUser.objects.filter(email__iexact=email).first()
+        if not admin or not admin.check_password(password):
+            return Response({"error": "Invalid email or password"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not admin.is_active:
+            return Response({"error": "This admin account is disabled"}, status=status.HTTP_403_FORBIDDEN)
+
+        token, _ = AdminAuthToken.objects.get_or_create(admin=admin)
+
+        return Response(
+            {
+                "message": "Login successful",
+                "token": token.key,
+                "admin": {"id": admin.id, "full_name": admin.full_name, "email": admin.email},
+            },
+            status=status.HTTP_200_OK,
+        )
 
 # ---------------------------------------------------------------------------
 # 1) Job Seekers
@@ -76,6 +107,24 @@ class AdminCompanyDetailView(AdminBaseView, generics.RetrieveDestroyAPIView):
     queryset = Company.objects.all()
     serializer_class = AdminCompanySerializer
 
+    def destroy(self, request, *args, **kwargs):
+        company = self.get_object()
+        try:
+            send_mail(
+                subject="تم حذف حساب شركتكم نهائياً",
+                message=(
+                    f"مرحباً {company.company_name}،\n"
+                    f"تم حذف حسابكم وكل الإعلانات المرتبطة فيه نهائياً من المنصة."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[company.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+        return super().destroy(request, *args, **kwargs)
+
 
 class AdminCompanyApproveView(AdminBaseView, APIView):
     def post(self, request, pk):
@@ -105,20 +154,31 @@ class AdminCompanyRejectView(AdminBaseView, APIView):
         serializer = AdminCompanyRejectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        was_approved = company.approval_status == "approved"
+
         company.rejection_reason = serializer.validated_data.get("reason", "")
         company.reject()
         company.save(update_fields=["rejection_reason"])
-        JobPosting.objects.filter(company=company).update(is_active=False)
 
         if not company.rejection_email_sent:
+            if was_approved:
+                subject = "تم إلغاء تفعيل حساب شركتكم"
+                message = (
+                    f"مرحباً {company.company_name}،\n"
+                    f"تم إلغاء تفعيل حسابكم على المنصة من قبل الإدارة.\n"
+                    f"السبب: {company.rejection_reason or 'غير محدد'}"
+                )
+            else:
+                subject = "بخصوص طلب تسجيل شركتكم"
+                message = (
+                    f"مرحباً {company.company_name}،\n"
+                    f"للأسف تم رفض طلب تسجيل حسابكم.\n"
+                    f"السبب: {company.rejection_reason or 'غير محدد'}"
+                )
             try:
                 send_mail(
-                    subject="بخصوص طلب تسجيل شركتكم",
-                    message=(
-                        f"مرحباً {company.company_name}،\n"
-                        f"للأسف تم رفض طلب تسجيل حسابكم.\n"
-                        f"السبب: {company.rejection_reason or 'غير محدد'}"
-                    ),
+                    subject=subject,
+                    message=message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[company.email],
                     fail_silently=True,
@@ -126,7 +186,7 @@ class AdminCompanyRejectView(AdminBaseView, APIView):
                 company.rejection_email_sent = True
                 company.save(update_fields=["rejection_email_sent"])
             except Exception:
-                pass  
+                pass
 
         return Response(AdminCompanySerializer(company).data)
 
