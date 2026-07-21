@@ -6,11 +6,13 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+
 from users.models import JobSeeker, Company
 from seeker_profiles.models import SeekerProfile
 from jobs.models import JobPosting, Specialization  
 
 from .authentication import AdminTokenAuthentication
+from .models import JobDeletionLog
 from .pagination import AdminPagination
 from .permissions import IsAdminUser
 from .serializers import (
@@ -20,6 +22,7 @@ from .serializers import (
     AdminCompanyRejectSerializer,
     AdminJobListSerializer,
     AdminJobDetailSerializer,
+    AdminJobDeleteSerializer,
     AdminCVSerializer,
     AdminCategorySerializer,
 )
@@ -148,6 +151,20 @@ class AdminJobDetailView(AdminBaseView, generics.RetrieveUpdateDestroyAPIView):
     queryset = JobPosting.objects.all()
     serializer_class = AdminJobDetailSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        job = self.get_object()
+        reason_serializer = AdminJobDeleteSerializer(data=request.data)
+        reason_serializer.is_valid(raise_exception=True)
+
+        JobDeletionLog.objects.create(
+            job_id=job.id,
+            job_title=job.title,
+            company_name=job.company.company_name,
+            deleted_by=request.user,
+            reason=reason_serializer.validated_data["reason"],
+        )
+        job.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class AdminJobSuspendView(AdminBaseView, APIView):
     def post(self, request, pk):

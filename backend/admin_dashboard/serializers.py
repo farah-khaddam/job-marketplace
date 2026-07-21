@@ -59,6 +59,8 @@ class AdminJobListSerializer(serializers.ModelSerializer):
     def get_status(self, obj):
         return "active" if obj.is_active else "suspended"
 
+class AdminJobDeleteSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=True, allow_blank=False, trim_whitespace=True)
 
 class AdminJobDetailSerializer(serializers.ModelSerializer):
     governorate = serializers.CharField(source="city")

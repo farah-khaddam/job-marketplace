@@ -329,27 +329,34 @@ def handle_company_otp_verification(verification, email):
         verification.delete()
         return Response({'error': 'Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if existing_company:  
+    if existing_company:
         existing_company.delete()
 
     if email_exists(email):
         verification.delete()
         return Response({'error': 'Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     if not password_hash:
         return Response({"error": "missing_credentials_in_payload"}, status=status.HTTP_400_BAD_REQUEST)
-        
-    # تعديل معماري نظيف وصريح باستخدام الـ Hash المباشر دون الحاجة لكائنات وهمية
-    payload['approval_status'] = 'pending_admin_approval'
-   
-    verification.payload = payload
-    verification.save()
+
+    company = Company.objects.create(
+        company_name=payload['company_name'],
+        email=email,
+        phone_number=payload['phone_number'],
+        password=password_hash,
+        governorate=payload['governorate'],
+        company_type=payload['company_type'],
+        website_url=payload.get('website_url') or "",
+        description=payload['description'],
+        approval_status='pending_admin_approval',
+    )
+    verification.delete()
 
     return Response(
         {
             'message': 'Email verified. Your company account is pending admin approval',
             'user_type': 'company',
-            'approval_status': 'pending_admin_approval',
+            'approval_status': company.approval_status,
         },
         status=status.HTTP_200_OK
     )

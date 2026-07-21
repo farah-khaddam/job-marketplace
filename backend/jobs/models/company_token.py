@@ -10,10 +10,6 @@ def generate_company_token():
 
 
 class CompanyAuthToken(models.Model):
-    """
-    رمز مصادقة للشركات — يُستخدم حصرياً في تطبيق jobs.
-    لا يعدّل على نظام المصادقة في تطبيق users.
-    """
 
     company = models.ForeignKey(
         Company,
