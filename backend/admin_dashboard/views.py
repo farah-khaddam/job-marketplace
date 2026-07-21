@@ -81,7 +81,7 @@ class AdminCompanyApproveView(AdminBaseView, APIView):
     def post(self, request, pk):
         company = get_object_or_404(Company, pk=pk)
         company.approve()
-
+        JobPosting.objects.filter(company=company).update(is_active=True)
         if not company.approval_email_sent:
             try:
                 send_mail(
@@ -108,6 +108,7 @@ class AdminCompanyRejectView(AdminBaseView, APIView):
         company.rejection_reason = serializer.validated_data.get("reason", "")
         company.reject()
         company.save(update_fields=["rejection_reason"])
+        JobPosting.objects.filter(company=company).update(is_active=False)
 
         if not company.rejection_email_sent:
             try:

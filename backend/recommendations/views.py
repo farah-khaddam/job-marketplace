@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-
+from django.utils import timezone
 from jobs.models import JobPosting
 from seeker_profiles.authentication import JobSeekerTokenAuthentication
 from seeker_profiles.permissions import IsJobSeekerAuthenticated
@@ -29,17 +29,29 @@ def recommended_jobs_for_seeker(request):
         return Response({'detail': 'Seeker profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     embedding_service = EmbeddingService()
-    seeker_text = ' '.join(filter(None, [
-        seeker.full_name,
-        seeker_profile.bio,
-        seeker_profile.governorate,
-        ' '.join(skill.name for skill in seeker_profile.skills.all()),
-        ' '.join(f"{experience.title} {experience.company}" for experience in seeker_profile.experiences.all()),
-        ' '.join(f"{education.degree} {education.institution}" for education in seeker_profile.education_entries.all()),
-    ]))
+    seeker_text = "\n".join(filter(None, [
+     seeker.full_name,
+     seeker_profile.bio,
+     seeker_profile.governorate,
+
+     "Skills",
+     "\n".join(skill.name for skill in seeker_profile.skills.all()),
+
+     "Experience",
+     "\n".join(
+        f"{exp.title} {exp.company}"
+        for exp in seeker_profile.experiences.all()
+    ),
+
+     "Education",
+     "\n".join(
+        f"{edu.degree} {edu.institution}"
+        for edu in seeker_profile.education_entries.all()
+    ),
+]))
 
     jobs = (
-        JobPosting.objects.filter(status='open', is_active=True)
+        JobPosting.objects.filter(status='open', is_active=True, expires_at__gte=timezone.localdate())
         .select_related('company','company__profile','specialization')
         .prefetch_related('job_applications')
     )
@@ -47,27 +59,31 @@ def recommended_jobs_for_seeker(request):
 
     if not jobs:
         return Response([], status=status.HTTP_200_OK)
-
-   
     job_texts = []
+
     for job in jobs:
-        job_text = ' '.join(filter(None, [
+        job_text = "\n".join(filter(None, [
             job.title,
+
+            job.specialization.name_en if getattr(job.specialization, "name_en", None) else "",
+            job.specialization.name_ar if getattr(job.specialization, "name_ar", None) else "",
+
             job.description,
-            job.specialization.name_en if getattr(job.specialization, 'name_en', None) else '',
-            job.specialization.name_ar if getattr(job.specialization, 'name_ar', None) else '',
+
+            "Skills",
+            "\n".join(job.required_skills or []),
+
             job.city,
             job.employment_type,
             job.work_mode,
         ]))
+
         job_texts.append(job_text)
 
-   
     all_texts = [seeker_text] + job_texts
     all_vectors = embedding_service.encode_batch(all_texts)
     seeker_vector, job_vectors = all_vectors[0], all_vectors[1:]
 
-  
     ranked = []
     for job, job_vector in zip(jobs, job_vectors):
         similarity = embedding_service.cosine_similarity(seeker_vector, job_vector)
