@@ -16,6 +16,7 @@ export default function AdminCategories() {
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -74,10 +75,13 @@ export default function AdminCategories() {
 
   const handleDelete = async () => {
     setBusy(true);
+    setDeleteError(null);
     try {
       await categoriesApi.delete(deleteTarget.id);
       setDeleteTarget(null);
       await load();
+    } catch (err) {
+      setDeleteError(err.data?.detail || t("admin.categories.delete_error_generic"));
     } finally {
       setBusy(false);
     }
@@ -184,10 +188,13 @@ export default function AdminCategories() {
         open={!!deleteTarget}
         loading={busy}
         title={t("admin.categories.confirm_delete_title")}
-        message={t("admin.categories.confirm_delete_msg", { name: deleteTarget?.name_ar })}
+        message={deleteError || t("admin.categories.confirm_delete_msg", { name: deleteTarget?.name_ar })}
         confirmLabel={t("admin.common.delete")}
         onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
       />
     </div>
   );

@@ -14,9 +14,16 @@ export default function ConfirmModal({
   loading,
   onConfirm,
   onCancel,
+  requireReason = false,
+  reason = "",
+  onReasonChange,
+  reasonLabel,
+  reasonPlaceholder,
 }) {
   const { t } = useTranslation();
   if (!open) return null;
+
+  const reasonMissing = requireReason && !reason.trim();
 
   return (
     <div
@@ -28,7 +35,22 @@ export default function ConfirmModal({
         className="w-full max-w-sm rounded-2xl bg-gradient-to-b from-[#1e3a5f] to-[#0f2544] border border-white/10 p-6 shadow-2xl"
       >
         <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-        <p className="text-sm text-white/70 mb-6">{message}</p>
+        <p className="text-sm text-white/70 mb-4">{message}</p>
+
+        {requireReason && (
+          <div className="mb-4">
+            <label className="block text-sm text-white/70 mb-1">
+              {reasonLabel || t("admin.common.reason_label")}
+            </label>
+            <textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => onReasonChange?.(e.target.value)}
+              placeholder={reasonPlaceholder || t("admin.common.reason_placeholder")}
+              className="w-full rounded-xl bg-white/90 text-[#0f2544] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+            />
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end">
           <button
@@ -39,7 +61,7 @@ export default function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || reasonMissing}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
               danger
                 ? "bg-red-500/90 text-white hover:bg-red-500"

@@ -17,6 +17,7 @@ export default function AdminJobs() {
   const [confirmTarget, setConfirmTarget] = useState(null); // { type: 'suspend'|'activate'|'delete', row }
   const [editingJob, setEditingJob] = useState(null); // row أو null
   const [busy, setBusy] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const columns = [
     { key: "title", label: t("admin.jobs.col_title") },
@@ -46,8 +47,9 @@ export default function AdminJobs() {
       const { type, row } = confirmTarget;
       if (type === "suspend") await runAction(() => jobsApi.suspend(row.id));
       if (type === "activate") await runAction(() => jobsApi.activate(row.id));
-      if (type === "delete") await runAction(() => jobsApi.delete(row.id));
+      if (type === "delete") await runAction(() => jobsApi.delete(row.id, deleteReason));
       setConfirmTarget(null);
+      setDeleteReason("");
     } finally {
       setBusy(false);
     }
@@ -110,8 +112,16 @@ export default function AdminJobs() {
         })}
         confirmLabel={t(`admin.common.${confirmTarget?.type === "delete" ? "delete" : confirmTarget?.type}`)}
         danger={confirmTarget?.type !== "activate"}
+        requireReason={confirmTarget?.type === "delete"}
+        reason={deleteReason}
+        onReasonChange={setDeleteReason}
+        reasonLabel={t("admin.jobs.delete_reason_label")}
+        reasonPlaceholder={t("admin.jobs.delete_reason_ph")}
         onConfirm={handleConfirm}
-        onCancel={() => setConfirmTarget(null)}
+        onCancel={() => {
+          setConfirmTarget(null);
+          setDeleteReason("");
+        }}
       />
 
       {editingJob && (
