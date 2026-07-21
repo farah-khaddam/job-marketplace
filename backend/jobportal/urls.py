@@ -27,6 +27,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
      path("api/", include("seeker_profiles.urls")),
      path("api/admin/", include("admin_dashboard.urls")),
+     path("api/applications/",include("applications.urls")),
 
 ]
 

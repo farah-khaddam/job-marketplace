@@ -47,3 +47,24 @@ class AdminAuthToken(models.Model):
 
     def __str__(self):
         return f"Token for {self.admin.email}"
+class JobDeletionLog(models.Model):
+
+    job_id = models.PositiveIntegerField(help_text="id الإعلان الأصلي قبل الحذف")
+    job_title = models.CharField(max_length=200)
+    company_name = models.CharField(max_length=200)
+    deleted_by = models.ForeignKey(
+        AdminUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="job_deletions",
+    )
+    reason = models.TextField()
+    deleted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Job Deletion Log"
+        verbose_name_plural = "Job Deletion Logs"
+        ordering = ["-deleted_at"]
+
+    def __str__(self):
+        return f"Job #{self.job_id} — {self.job_title} (by {self.deleted_by})"

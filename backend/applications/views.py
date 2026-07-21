@@ -13,6 +13,23 @@ from seeker_profiles.permissions import IsJobSeekerAuthenticated
 from .models import JobApplication
 from .serializers import JobApplicationSerializer, JobApplicationStatusSerializer
 
+from rest_framework.generics import ListAPIView
+from .serializers import CompanyApplicationSerializer
+
+
+class CompanyJobApplicationsView(ListAPIView):
+
+    serializer_class = CompanyApplicationSerializer
+    authentication_classes = [CompanyTokenAuthentication]
+    permission_classes = [IsApprovedCompany]
+
+    def get_queryset(self):
+        company = self.request.auth
+
+        return JobApplication.objects.filter(
+            job_posting__company=company
+        )
+
 
 @api_view(['POST'])
 @authentication_classes([JobSeekerTokenAuthentication])
