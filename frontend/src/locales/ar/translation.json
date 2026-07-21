@@ -584,5 +584,110 @@
       "company_btn": "سجّل شركتك"
     },
     "rights": "جميع الحقوق محفوظة"
+  },
+  "admin": {
+    "nav": {
+      "title": "لوحة التحكم",
+      "seekers": "الباحثين عن عمل",
+      "companies": "الشركات",
+      "jobs": "الوظائف",
+      "cvs": "السير الذاتية",
+      "categories": "التصنيفات"
+    },
+    "auth": {
+      "need_token": "لسا ما في صفحة دخول جاهزة. حطي توكن الأدمن (الطالع من create_admin) لحتى تدخلي.",
+      "token_placeholder": "توكن الأدمن",
+      "enter": "دخول",
+      "logout": "تسجيل خروج",
+      "switch_language": "تغيير اللغة"
+    },
+    "common": {
+      "search": "بحث...",
+      "loading": "جاري التحميل...",
+      "load_error": "صار في خطأ بتحميل البيانات، جربي كمان مرة",
+      "empty": "ما في نتائج",
+      "actions": "الإجراءات",
+      "status": "الحالة",
+      "active": "فعّال",
+      "suspended": "موقوف",
+      "pending": "بانتظار الموافقة",
+      "approved": "موافَق عليه",
+      "rejected": "مرفوض",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "save": "حفظ",
+      "delete": "حذف",
+      "edit": "تعديل",
+      "view": "عرض",
+      "suspend": "إيقاف",
+      "activate": "تفعيل",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "processing": "جاري التنفيذ...",
+      "prev": "السابق",
+      "next": "التالي"
+    },
+    "seekers": {
+      "col_name": "الاسم",
+      "col_email": "البريد الإلكتروني",
+      "col_phone": "رقم الهاتف",
+      "col_joined": "تاريخ التسجيل",
+      "search_ph": "دوري باسم أو بريد إلكتروني...",
+      "confirm_delete_title": "حذف حساب باحث عمل",
+      "confirm_delete_msg": "متأكدة إنك بدك تحذفي حساب \"{{name}}\"؟ هالإجراء ما رح ينرجع.",
+      "confirm_suspend_title": "إيقاف الحساب",
+      "confirm_activate_title": "تفعيل الحساب",
+      "confirm_toggle_msg": "متأكدة من تغيير حالة حساب \"{{name}}\"؟"
+    },
+    "companies": {
+      "col_name": "اسم الشركة",
+      "col_email": "البريد الإلكتروني",
+      "col_sector": "المجال",
+      "search_ph": "دوري باسم شركة...",
+      "confirm_approve_title": "الموافقة على الشركة",
+      "confirm_approve_msg": "بدك توافقي على انضمام \"{{name}}\" للمنصة؟",
+      "confirm_reject_title": "رفض الشركة",
+      "confirm_reject_msg": "بدك ترفضي طلب \"{{name}}\"؟",
+      "confirm_delete_title": "حذف حساب الشركة",
+      "confirm_delete_msg": "متأكدة إنك بدك تحذفي \"{{name}}\"؟ هالإجراء ما رح ينرجع."
+    },
+    "jobs": {
+      "col_title": "عنوان الوظيفة",
+      "col_company": "الشركة",
+      "col_location": "المحافظة",
+      "col_posted": "تاريخ النشر",
+      "search_ph": "دوري بعنوان وظيفة أو شركة...",
+      "edit_title": "تعديل إعلان الوظيفة",
+      "field_title": "العنوان",
+      "field_description": "الوصف",
+      "field_governorate": "المحافظة",
+      "confirm_suspend_title": "إيقاف الإعلان",
+      "confirm_suspend_msg": "بدك توقفي إعلان \"{{title}}\"؟ ما رح يظهر للمستخدمين.",
+      "confirm_activate_title": "إعادة تفعيل الإعلان",
+      "confirm_activate_msg": "بدك تفعلي إعلان \"{{title}}\" من جديد؟",
+      "confirm_delete_title": "حذف الإعلان",
+      "confirm_delete_msg": "متأكدة إنك بدك تحذفي إعلان \"{{title}}\"؟ هالإجراء ما رح ينرجع."
+    },
+    "cvs": {
+      "col_owner": "صاحب السيرة الذاتية",
+      "col_file": "اسم الملف",
+      "col_uploaded": "تاريخ الرفع",
+      "search_ph": "دوري باسم صاحب السيرة الذاتية...",
+      "confirm_delete_title": "حذف السيرة الذاتية",
+      "confirm_delete_msg": "متأكدة إنك بدك تحذفي السيرة الذاتية تبع \"{{name}}\"؟"
+    },
+    "categories": {
+      "col_name_ar": "الاسم بالعربي",
+      "col_name_en": "الاسم بالإنجليزي",
+      "col_jobs_count": "عدد الوظائف",
+      "add": "إضافة تصنيف",
+      "add_title": "إضافة تصنيف جديد",
+      "edit_title": "تعديل التصنيف",
+      "field_name_ar": "الاسم بالعربي",
+      "field_name_en": "الاسم بالإنجليزي",
+      "confirm_delete_title": "حذف التصنيف",
+      "confirm_delete_msg": "متأكدة إنك بدك تحذفي تصنيف \"{{name}}\"؟"
+    }
   }
+
 }

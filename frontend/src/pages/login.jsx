@@ -27,6 +27,29 @@ function handlePostLoginRedirect(data) {
   }
 }
 
+  // بتجرب تسجيل دخول كأدمن (endpoint منفصل، موديل AdminUser منفصل).
+  // بترجع true إذا نجحت (وبهالحالة بتوجّه مباشرة لـ /admin)، وfalse إذا لأ.
+  const tryAdminLogin = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      })
+
+      if (!res.ok) return false
+
+      const data = await res.json()
+      if (!data.token) return false
+
+      localStorage.setItem("admin_token", data.token)
+      navigate("/admin")
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -51,7 +74,13 @@ function handlePostLoginRedirect(data) {
         localStorage.setItem("token", data.token)
         // Redirect based on role if backend provided `user_type`
         handlePostLoginRedirect(data)
-      } else {
+        return
+      }
+
+      // مو باحث عن عمل ولا شركة (البريد/الباسورد ما انطابقو بجدول users العادي)
+      // قبل ما نطلع رسالة خطأ، منجرب إذا هيدا أصلاً حساب أدمن.
+      const loggedInAsAdmin = await tryAdminLogin()
+      if (!loggedInAsAdmin) {
         const firstError = Object.values(data)[0]
         setError(Array.isArray(firstError) ? firstError[0] : firstError)
       }

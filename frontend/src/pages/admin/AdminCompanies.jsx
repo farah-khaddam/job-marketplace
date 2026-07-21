@@ -8,11 +8,15 @@ import StatusBadge from "../../components/admin/StatusBadge";
 import { companiesApi } from "../../services/adminApi";
 import { useAdminList } from "./useAdminList";
 
+// القيمة الحقيقية الجاية من الـ backend هي "pending_admin_approval" (مش "pending")
+// حسب approval_status بموديل Company. خليناها متطابقة معه بدل ما نطلب من الباك اند تغييرها.
 const STATUS_LABEL_KEY = {
   approved: "admin.common.approved",
-  pending: "admin.common.pending",
+  pending_admin_approval: "admin.common.pending",
   rejected: "admin.common.rejected",
 };
+
+const PENDING_STATUS = "pending_admin_approval";
 
 export default function AdminCompanies() {
   const { t } = useTranslation();
@@ -62,7 +66,7 @@ export default function AdminCompanies() {
         pagination={{ page, totalPages, onPageChange: setPage }}
         actions={(row) => (
           <div className="flex items-center gap-2">
-            {row.status === "pending" && (
+            {row.status === PENDING_STATUS && (
               <>
                 <button
                   title={t("admin.common.approve")}

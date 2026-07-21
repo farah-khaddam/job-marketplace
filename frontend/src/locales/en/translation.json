@@ -577,6 +577,111 @@
       "company_btn": "Register your company"
     },
     "rights": "All rights reserved"
+  },
+   "admin": {
+    "nav": {
+      "title": "Admin Panel",
+      "seekers": "Job Seekers",
+      "companies": "Companies",
+      "jobs": "Jobs",
+      "cvs": "CVs",
+      "categories": "Categories"
+    },
+    "auth": {
+      "need_token": "No login page yet. Paste the admin token (from create_admin) to continue.",
+      "token_placeholder": "Admin token",
+      "enter": "Enter",
+      "logout": "Log out",
+      "switch_language": "Switch language"
+    },
+    "common": {
+      "search": "Search...",
+      "loading": "Loading...",
+      "load_error": "Something went wrong loading the data. Please try again.",
+      "empty": "No results",
+      "actions": "Actions",
+      "status": "Status",
+      "active": "Active",
+      "suspended": "Suspended",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "save": "Save",
+      "delete": "Delete",
+      "edit": "Edit",
+      "view": "View",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "approve": "Approve",
+      "reject": "Reject",
+      "processing": "Processing...",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "seekers": {
+      "col_name": "Name",
+      "col_email": "Email",
+      "col_phone": "Phone",
+      "col_joined": "Joined",
+      "search_ph": "Search by name or email...",
+      "confirm_delete_title": "Delete seeker account",
+      "confirm_delete_msg": "Are you sure you want to delete \"{{name}}\"'s account? This cannot be undone.",
+      "confirm_suspend_title": "Suspend account",
+      "confirm_activate_title": "Activate account",
+      "confirm_toggle_msg": "Change status for \"{{name}}\"'s account?"
+    },
+    "companies": {
+      "col_name": "Company name",
+      "col_email": "Email",
+      "col_sector": "Sector",
+      "search_ph": "Search by company name...",
+      "confirm_approve_title": "Approve company",
+      "confirm_approve_msg": "Approve \"{{name}}\" to join the platform?",
+      "confirm_reject_title": "Reject company",
+      "confirm_reject_msg": "Reject \"{{name}}\"'s application?",
+      "confirm_delete_title": "Delete company account",
+      "confirm_delete_msg": "Are you sure you want to delete \"{{name}}\"? This cannot be undone."
+    },
+    "jobs": {
+      "col_title": "Job title",
+      "col_company": "Company",
+      "col_location": "Governorate",
+      "col_posted": "Posted",
+      "search_ph": "Search by job title or company...",
+      "edit_title": "Edit job listing",
+      "field_title": "Title",
+      "field_description": "Description",
+      "field_governorate": "Governorate",
+      "confirm_suspend_title": "Suspend listing",
+      "confirm_suspend_msg": "Suspend \"{{title}}\"? It will be hidden from users.",
+      "confirm_activate_title": "Reactivate listing",
+      "confirm_activate_msg": "Reactivate \"{{title}}\"?",
+      "confirm_delete_title": "Delete listing",
+      "confirm_delete_msg": "Are you sure you want to delete \"{{title}}\"? This cannot be undone."
+    },
+    "cvs": {
+      "col_owner": "Owner",
+      "col_file": "File name",
+      "col_uploaded": "Uploaded",
+      "search_ph": "Search by owner name...",
+      "confirm_delete_title": "Delete CV",
+      "confirm_delete_msg": "Are you sure you want to delete \"{{name}}\"'s CV?"
+    },
+    "categories": {
+      "col_name_ar": "Name (Arabic)",
+      "col_name_en": "Name (English)",
+      "col_jobs_count": "Jobs count",
+      "add": "Add category",
+      "add_title": "Add new category",
+      "edit_title": "Edit category",
+      "field_name_ar": "Name (Arabic)",
+      "field_name_en": "Name (English)",
+      "confirm_delete_title": "Delete category",
+      "confirm_delete_msg": "Are you sure you want to delete \"{{name}}\"?"
+    }
   }
+
 }
 
