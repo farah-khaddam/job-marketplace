@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-
+from django.utils import timezone
 from jobs.models import JobPosting
 from seeker_profiles.authentication import JobSeekerTokenAuthentication
 from seeker_profiles.permissions import IsJobSeekerAuthenticated
@@ -39,7 +39,7 @@ def recommended_jobs_for_seeker(request):
     ]))
 
     jobs = (
-        JobPosting.objects.filter(status='open', is_active=True)
+        JobPosting.objects.filter(status='open', is_active=True, expires_at__gte=timezone.localdate())
         .select_related('company','company__profile','specialization')
         .prefetch_related('job_applications')
     )
