@@ -80,7 +80,8 @@ export const jobsApi = {
   update: (id, payload) => request(`/admin/jobs/${id}/`, { method: "PATCH", body: payload }),
   suspend: (id) => request(`/admin/jobs/${id}/suspend/`, { method: "POST" }),
   activate: (id) => request(`/admin/jobs/${id}/activate/`, { method: "POST" }),
-  delete: (id) => request(`/admin/jobs/${id}/`, { method: "DELETE" }),
+  // الحذف هلق إلزامي معه "reason" (سجل تدقيق JobDeletionLog بالباك اند)
+  delete: (id, reason) => request(`/admin/jobs/${id}/`, { method: "DELETE", body: { reason } }),
 };
 
 /* ---------------------------------- 4) CVs -------------------------------- */
