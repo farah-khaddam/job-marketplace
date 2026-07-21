@@ -371,6 +371,17 @@
       "subtitle": "{{count}} طلب بانتظار المراجعة",
       "load_error": "صار خطأ بالتحميل",
       "sort_label": "ترتيب حسب",
+       "back_to_jobs": "العودة إلى الوظائف",
+      "job_scope_fallback_title": "طلبات التقديم على هذه الوظيفة",
+      "search_placeholder": "ابحث باسم المتقدم",
+      "no_match_filters": "لا توجد نتائج مطابقة لهذا الفلتر",
+      "status_plural": {
+        "all": "الكل",
+        "applied": "جديدة",
+        "reviewed": "قيد المراجعة",
+        "accepted": "مقبولة",
+        "rejected": "مرفوضة"
+      },
       "sort": {
         "newest": "الأحدث",
         "oldest": "الأقدم",
@@ -393,6 +404,7 @@
       "match_method_tooltip": "مبنية على تقاطع المهارات المطلوبة مع مهارات الباحث",
       "match_value": "{{score}}% تطابق",
       "mark_reviewed": "تحديد كمُراجَع",
+      
       "status": {
         "applied": "قيد الانتظار",
         "reviewed": "تمت المراجعة",
