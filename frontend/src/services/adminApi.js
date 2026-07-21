@@ -1,16 +1,16 @@
 // src/services/adminApi.js
 //
-// ملاحظة مهمة قبل ما تستخدميه:
-// عم افترض إنه في توكن خاص بالأدمن اسمه "AdminToken" مخزّن بالـ localStorage
-// تحت المفتاح "admin_token"، وإنه شكل الهيدر متل باقي الأنواع عندك:
-//   Authorization: `AdminToken ${token}`
-// لازم تتأكدي من هالشكل مع رفيقك بالباك اند (authentication.py) وتعدلي
-// AUTH_HEADER_PREFIX و TOKEN_STORAGE_KEY تحت إذا كان مختلف.
+// محدّث حسب authentication.py الحقيقي (admin_dashboard app):
+// الهيدر شكله Authorization: Token <key>  (مش AdminToken متل ما كان مفترض قبل).
+// التوكن نفسه لسا لازم ينحط يدوياً بالـ localStorage تحت مفتاح "admin_token"
+// لحتى نبني صفحة admin login (ما في UI تسجيل دخول للأدمن لهلق، بس create_admin
+// عالترمينال عم يطلع توكن جاهز — حطيه مؤقتاً هيك من الـ console:
+//   localStorage.setItem("admin_token", "PASTE_TOKEN_HERE")
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const TOKEN_STORAGE_KEY = "admin_token";
-const AUTH_HEADER_PREFIX = "AdminToken"; // عدّليها إذا كانت "Bearer" أو "Token"
+const AUTH_HEADER_PREFIX = "Token";
 
 function getAuthHeader() {
   const token = localStorage.getItem(TOKEN_STORAGE_KEY);

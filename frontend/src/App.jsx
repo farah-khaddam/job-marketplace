@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate} from "react-router-dom"
 import Login from "./pages/login"
 import Signup from "./pages/signup"
 import SeekerSignup from "./pages/SeekerSignup"
@@ -19,6 +19,10 @@ import Companies from "./pages/Companies"
 import About from "./pages/About"
 import AdminLayout from "./pages/admin/AdminLayout"
 import AdminSeekers from "./pages/admin/AdminSeekers"
+import AdminCompanies from "./pages/admin/AdminCompanies"
+import AdminJobs from "./pages/admin/AdminJobs"
+import AdminCVs from "./pages/admin/AdminCVs"
+import AdminCategories from "./pages/admin/AdminCategories"
 import CompanyApplication from "./pages/company/CompanyApplications"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
@@ -54,8 +58,14 @@ function App() {
       <Route path="/companies" element={<Companies />} />
       <Route path="/company/jobs/:id/edit" element={<PostJob />} />
       <Route path="/about" element={<About />} />
-      <Route path="/admin/*" element={<AdminLayout />} />
-      <Route path="/admin/seekers" element={<AdminSeekers />} />
+       <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Navigate to="/admin/seekers" replace />} />
+        <Route path="seekers" element={<AdminSeekers />} />
+        <Route path="companies" element={<AdminCompanies />} />
+        <Route path="jobs" element={<AdminJobs />} />
+        <Route path="cvs" element={<AdminCVs />} />
+        <Route path="categories" element={<AdminCategories />} />
+      </Route>
       <Route path="/company/applications" element={<CompanyApplication />} />
     </Routes>
   )
