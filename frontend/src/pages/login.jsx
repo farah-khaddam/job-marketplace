@@ -25,6 +25,9 @@ function handlePostLoginRedirect(data) {
   } else if (userType === "job_seeker") {
     navigate("/")
   }
+  else{
+    navigate("/admin")
+  }
 }
 
   // بتجرب تسجيل دخول كأدمن (endpoint منفصل، موديل AdminUser منفصل).

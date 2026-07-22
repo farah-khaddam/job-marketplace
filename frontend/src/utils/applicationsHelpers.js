@@ -1,122 +1,128 @@
-// src/utils/applicationsHelpers.js
-// أدوات مساعدة لصفحة "إدارة الطلبات" (Company Applications)
+// utils/applicationsHelpers.js
+//
+// ملاحظة: هاي الدوال بتتعامل بمرونة مع شوي احتمالات لأسماء حقول الوظيفة
+// (job / job_id / job_posting) لأنو ما لازم نلمس الباك إند — إذا الحقل
+// المتوقع مش موجود بالـ response، منرجع لأقرب بديل موجود بدون ما نطيح الصفحة.
 
-// ── مؤكّد من الباك إند: الحقل يلي بيربط الطلب بالوظيفة هو job_posting (FK) ─
-export function getJobId(app) {
-  return app.job_posting ?? app.job_id ?? app.job ?? "unknown"
+function getJobId(app) {
+  return app.job ?? app.job_id ?? app.job_posting ?? app.job_posting_id ?? null
 }
 
-// ── TODO(Farah): تأكدي من اسم حقل تاريخ التقديم (applied_at / created_at / submitted_at) ─
+// TODO(Farah): الـ endpoint الحالي (/api/applications/company/applications/) عم يرجّع
+// شكل متداخل (applicant_profile: {full_name, email, skills...}) وما فيه ولا حقل
+// يدل على الوظيفة (لا job_title ولا job id). لهيك منقرا full_name/email/skills من
+// جوا applicant_profile كـ fallback، بس عنوان الوظيفة والمطابقة (match score) ما
+// فيهن حل من الفرونت إند لحاله - لازم الباك إند يضيف job_title/job id لل response.
+function getApplicantProfile(app) {
+  return app.applicant_profile || null
+}
+
+export function getJobTitle(app) {
+  return app.job_title || app.job?.title || app.job_posting?.title || null
+}
+
 export function getAppliedAt(app) {
-  return app.applied_at || app.created_at || app.submitted_at || null
+  return app.applied_at || app.created_at || null
 }
 
-// ── TODO(Farah): مؤكّد من الباك إند إنو الإيميل مش مضاف بالـ serializer حالياً ─
-// موجود بالموديل (job_seeker.email) بس ناقص من الـ response. لما ينضاف رح ياخد
-// اسم متل seeker_email على الأغلب - غطّينا كذا احتمال لحد ما تتأكدي من الاسم النهائي
+export function getSeekerName(app) {
+  return app.seeker_name || getApplicantProfile(app)?.full_name || null
+}
+
 export function getSeekerEmail(app) {
-  return app.seeker_email || app.email || app.job_seeker?.email || app.seeker?.email || null
+  return app.seeker_email || getApplicantProfile(app)?.email || null
 }
 
-// ── نسبة التطابق (Match Score) ──────────────────────────────────────────
-// بدل ما نعتمد على embedding الباك إند (اللي فيه باگ حالياً بـ EmbeddingService.encode_text:
-// كل نص عم ياخد vocabulary مستقل، يعني نسب التشابه منو مش موثوقة رياضياً)، منحسب هون
-// تطابق بسيط اعتماداً على "تقاطع المهارات" (Skill Overlap) بين متطلبات الوظيفة ومهارات الباحث.
-// هاد الأسلوب:
-//   - أبسط وأشفف من المستخدمة (بيعرف تفسر ليش الرقم طلع هيك)
-//   - مش عرضة لباگ الـ embedding لأنو أصلاً ما عم نستخدم EmbeddingService
-//   - بس هو مؤشر أولي بس (skill overlap) مش تحليل دلالي عميق للنص
-//   - لاحقاً بمرحلة تانية ممكن تنستبدل بـ multilingual embeddings سليمة (متل ما حكينا سابقاً)
-
-function normalizeSkillList(list) {
-  if (!Array.isArray(list)) return null
-  return list
-    .map(s => (typeof s === "string" ? s : s?.name))
-    .filter(Boolean)
-    .map(s => s.trim().toLowerCase())
+export function getRequiredSkills(app) {
+  const skills = app.job_required_skills
+  return Array.isArray(skills) ? skills : []
 }
 
-export function computeSkillOverlapScore(requiredSkills, seekerSkills) {
-  const req = normalizeSkillList(requiredSkills)
-  const has = normalizeSkillList(seekerSkills)
-  if (!req || !has || req.length === 0 || has.length === 0) return null
+export function getSeekerSkills(app) {
+  if (Array.isArray(app.seeker_skills)) return app.seeker_skills
 
-  const seekerSet = new Set(has)
-  const matched = req.filter(skill => seekerSet.has(skill)).length
-  return Math.round((matched / req.length) * 100)
+  const profile = getApplicantProfile(app)
+  if (profile && Array.isArray(profile.skills)) {
+    // شكل الحقل من ApplicantProfileSerializer.get_skills هو [{name: "..."}], مش نصوص مباشرة
+    return profile.skills.map(s => (typeof s === "string" ? s : s?.name)).filter(Boolean)
+  }
+  return []
 }
 
+// نسبة تطابق مهارات الباحث مع متطلبات الوظيفة (0-100)، أو null إذا ما في
+// بيانات كافية للمقارنة (يخلي الـ UI يعرض "—" بدل رقم مضلل)
 export function getMatchScore(app) {
-  // أولوية 1: لو الباك إند بعت match_score جاهز (لسا فيه باگ الـ embedding، فمش لازم نعتمد عليه حالياً)
-  const raw = app.match_score ?? app.match_percentage ?? null
-  if (raw !== null && raw !== undefined) {
-    return Math.round(raw <= 1 ? raw * 100 : raw)
-  }
+  const required = getRequiredSkills(app).map(s => s.toLowerCase().trim())
+  const seeker = new Set(getSeekerSkills(app).map(s => s.toLowerCase().trim()))
 
-  // أولوية 2: حساب بسيط بالاعتماد على تقاطع المهارات (client-side)
-  // TODO(Farah): مؤكّد من الباك إند إنو هاي الحقول لسا مش موجودة بالـ response:
-  //   - job_required_skills: بدها حقل جديد بموديل JobPosting نفسو (required_skills)
-  //     مش موجود حالياً أبداً، يعني لازم Migration جديدة قبل ما تنضاف للـ serializer
-  //   - seeker_skills: البيانات موجودة أصلاً بـ SeekerProfile.skills، بس ناقصة من serializer الطلبات
-  // لحد ما تنضاف الاثنين، رح ترجع null دايماً وخيار "التطابق" رح يضل معطّل بالواجهة تلقائياً
-  const requiredSkills = app.job_required_skills || app.job_skills || null
-  const seekerSkills = app.seeker_skills || app.applicant_skills || null
-  return computeSkillOverlapScore(requiredSkills, seekerSkills)
-}
+  if (required.length === 0) return null
 
-// ── تجميع الطلبات حسب الوظيفة ───────────────────────────────────────────
-export function groupApplicationsByJob(applications) {
-  const map = new Map()
-  for (const app of applications) {
-    const jobId = getJobId(app)
-    if (!map.has(jobId)) {
-      map.set(jobId, {
-        jobId,
-        jobTitle: app.job_title || "-",
-        applications: [],
-      })
-    }
-    map.get(jobId).applications.push(app)
-  }
-  // ترتيب المجموعات: الوظيفة يلي فيها طلبات معلّقة (pending) أكتر تطلع فوق
-  return Array.from(map.values()).sort((a, b) => {
-    const pendingA = a.applications.filter(x => (x.status || "pending") === "pending").length
-    const pendingB = b.applications.filter(x => (x.status || "pending") === "pending").length
-    return pendingB - pendingA
-  })
-}
-
-// ── ترتيب الطلبات جوّا كل وظيفة ──────────────────────────────────────────
-// sortBy: "newest" | "oldest" | "match"
-export function sortApplications(applications, sortBy) {
-  const list = [...applications]
-
-  if (sortBy === "match") {
-    return list.sort((a, b) => {
-      const ma = getMatchScore(a)
-      const mb = getMatchScore(b)
-      if (ma === null && mb === null) return 0
-      if (ma === null) return 1   // يلي ما إلها match score تنزل تحت
-      if (mb === null) return -1
-      return mb - ma
-    })
-  }
-
-  if (sortBy === "oldest") {
-    return list.sort((a, b) => new Date(getAppliedAt(a) || 0) - new Date(getAppliedAt(b) || 0))
-  }
-
-  // "newest" (الافتراضي)
-  return list.sort((a, b) => new Date(getAppliedAt(b) || 0) - new Date(getAppliedAt(a) || 0))
+  const matched = required.filter(skill => seeker.has(skill)).length
+  return Math.round((matched / required.length) * 100)
 }
 
 export function formatAppliedDate(dateStr, isAr) {
   if (!dateStr) return "-"
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return "-"
-  return d.toLocaleDateString(isAr ? "ar-SY" : "en-GB", {
+  const date = new Date(dateStr)
+  if (Number.isNaN(date.getTime())) return "-"
+
+  const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000)
+
+  if (diffDays <= 0) return isAr ? "اليوم" : "Today"
+  if (diffDays === 1) return isAr ? "أمس" : "Yesterday"
+  if (diffDays < 7) return isAr ? `قبل ${diffDays} أيام` : `${diffDays}d ago`
+
+  return date.toLocaleDateString(isAr ? "ar" : "en", {
     year: "numeric",
     month: "short",
     day: "numeric",
   })
+}
+
+// يجمع الطلبات حسب الوظيفة. بيفضّل التجميع حسب job id إذا موجود،
+// وإذا لأ (الباك إند القديم ما بيرجعو) بيرجع للتجميع حسب العنوان كحل بديل.
+export function groupApplicationsByJob(applications) {
+  const groups = new Map()
+
+  for (const app of applications) {
+    const jobId = getJobId(app)
+    const key = jobId != null ? `id:${jobId}` : `title:${getJobTitle(app)}`
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        jobId: jobId != null ? jobId : key,
+        jobTitle: getJobTitle(app),
+        applications: [],
+      })
+    }
+    groups.get(key).applications.push(app)
+  }
+
+  return Array.from(groups.values())
+}
+
+// طلبات وظيفة واحدة بس (لصفحة /company/jobs/:jobId/applications)
+export function filterApplicationsByJob(applications, jobId) {
+  if (jobId == null) return applications
+  const target = String(jobId)
+  return applications.filter(app => String(getJobId(app)) === target)
+}
+
+export function sortApplications(applications, sortBy) {
+  const list = [...applications]
+
+  if (sortBy === "oldest") {
+    return list.sort(
+      (a, b) => new Date(getAppliedAt(a) || 0) - new Date(getAppliedAt(b) || 0)
+    )
+  }
+
+  if (sortBy === "match") {
+    return list.sort((a, b) => (getMatchScore(b) ?? -1) - (getMatchScore(a) ?? -1))
+  }
+
+  // newest (default)
+  return list.sort(
+    (a, b) => new Date(getAppliedAt(b) || 0) - new Date(getAppliedAt(a) || 0)
+  )
 }

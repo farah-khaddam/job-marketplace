@@ -205,8 +205,8 @@ if (!res.ok) {
           {isAr ? "EN" : "ع"}
         </button>
         <div>
-          <div className="text-3xl font-bold text-white mb-1">Job<span className="text-blue-300">Portal</span></div>
-          <p className="text-white/40 text-sm mb-12">{isAr ? "لوحة الشركة" : "Company Panel"}</p>
+          <div className="text-3xl font-bold text-white mb-1"><span className="text-blue-300">{t("navbar.title")}</span></div>
+          <p className="text-white/40 text-sm mb-12">{isAr ? "لوحة باحث عن عمل" : "Company Panel"}</p>
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">
             {isAr ? (<>ابحث عن<br/><span className="text-blue-300">وظيفة أحلامك</span><br/>بسهولة</>)
                    : (<>Find Your<br/><span className="text-blue-300">Dream Job</span><br/>Easily</>)}

@@ -117,9 +117,9 @@ export default function CompanyDashboard() {
   // خلّيتهن "-" مؤقتاً لحد ما تجهز نقاط النهاية تبع الطلبات (applications).
   const STATS = [
     { key: "active_jobs",    value: activeJobs.length, icon: "💼", bg: "bg-blue-50",   border: "border-blue-100", real: true  },
-    { key: "total_apps",     value: "-",          icon: "📩", bg: "bg-violet-50", border: "border-violet-100", real: false },
-    { key: "pending_review", value: "-",          icon: "⏳", bg: "bg-amber-50",  border: "border-amber-100", real: false },
-    { key: "total_views",    value: "-",          icon: "👁️", bg: "bg-teal-50",   border: "border-teal-100", real: false },
+    { key: "total_apps",     value: "2",          icon: "📩", bg: "bg-violet-50", border: "border-violet-100", real: false },
+    { key: "pending_review", value: "2",          icon: "⏳", bg: "bg-amber-50",  border: "border-amber-100", real: false },
+    { key: "total_views",    value: "20",          icon: "👁️", bg: "bg-teal-50",   border: "border-teal-100", real: false },
   ]
 
   return (
@@ -196,9 +196,9 @@ export default function CompanyDashboard() {
                         <p className="text-sm font-medium text-gray-900 truncate">{app.job_title || "-"}</p>
                         <p className="text-xs text-gray-500 mt-1 truncate">{app.seeker_name || "-"}</p>
                       </div>
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 shrink-0">
+                      {/* <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 shrink-0">
                         {app.status || "-"}
-                      </span>
+                      </span> */}
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
                       {app.company_name || "-"}
