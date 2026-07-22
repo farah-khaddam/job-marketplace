@@ -509,68 +509,68 @@ def google_login(request):
         status=status.HTTP_200_OK
     )
 
-# @api_view(['POST'])
-# def company_login(request):
-#     """
-#     Endpoint for Company Login.
+@api_view(['POST'])
+def company_login(request):
+    """
+    Endpoint for Company Login.
     
-#     Required fields:
-#         - email: str
-#         - password: str
+    Required fields:
+        - email: str
+        - password: str
     
-#     Returns:
-#         - Success (200): Company details, token for jobs API, and session info
-#         - Error (400): Invalid credentials
-#         - Error (404): Company not found
-#     """
-#     serializer = CompanyLoginSerializer(data=request.data)
-#     try:
-#         serializer.is_valid(raise_exception=True)
-#     except serializers.ValidationError as exc:
-#         logger.debug('Company login validation errors: %s', exc.detail)
-#         raise
+    Returns:
+        - Success (200): Company details, token for jobs API, and session info
+        - Error (400): Invalid credentials
+        - Error (404): Company not found
+    """
+    serializer = CompanyLoginSerializer(data=request.data)
+    try:
+        serializer.is_valid(raise_exception=True)
+    except serializers.ValidationError as exc:
+        logger.debug('Company login validation errors: %s', exc.detail)
+        raise
 
-#     email = serializer.validated_data.get('email', '').lower().strip()
-#     password = serializer.validated_data.get('password', '')
+    email = serializer.validated_data.get('email', '').lower().strip()
+    password = serializer.validated_data.get('password', '')
 
-#     try:
-#         company = Company.objects.get(email=email)
+    try:
+        company = Company.objects.get(email=email)
         
-#         # Verify password
-#         if check_password(password, company.password):
+        # Verify password
+        if check_password(password, company.password):
             
-#             if company.approval_status == 'pending_admin_approval':
-#                 return Response(
-#                     {'error': 'Your company account is under review'},
-#                     status=status.HTTP_403_FORBIDDEN
-#                 )
+            if company.approval_status == 'pending_admin_approval':
+                return Response(
+                    {'error': 'Your company account is under review'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
-#             if company.approval_status == 'rejected':
-#                 return Response(
-#                     {'error': 'Your company account has been rejected'},
-#                     status=status.HTTP_403_FORBIDDEN
-#                 )
+            if company.approval_status == 'rejected':
+                return Response(
+                    {'error': 'Your company account has been rejected'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
-#             detail_serializer = CompanyDetailSerializer(company)
-#             return Response(
-#                 {
-#                     'message': 'Login successful',
-#                     'user_type': 'company',
-#                     'token': get_or_create_company_token(company),
-#                     'data': detail_serializer.data
-#                 },
-#                 status=status.HTTP_200_OK
-#             )
-#         else:
-#             return Response(
-#                 {'error': 'Invalid email or password'},
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-#     except Company.DoesNotExist:
-#         return Response(
-#             {'error': 'Invalid email or password'},
-#             status=status.HTTP_404_NOT_FOUND
-#         )
+            detail_serializer = CompanyDetailSerializer(company)
+            return Response(
+                {
+                    'message': 'Login successful',
+                    'user_type': 'company',
+                    'token': get_or_create_company_token(company),
+                    'data': detail_serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {'error': 'Invalid email or password'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Company.DoesNotExist:
+        return Response(
+            {'error': 'Invalid email or password'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
 class JobSeekerCountView(APIView):
     def get(self, request):
